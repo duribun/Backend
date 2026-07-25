@@ -1,0 +1,28 @@
+server:
+  forward-headers-strategy: framework
+
+spring:
+  jpa:
+    database-platform: org.hibernate.dialect.PostgreSQLDialect
+    hibernate:
+      ddl-auto: validate # 운영에서는 절대 update 금지 - 스키마 변경은 마이그레이션으로
+    properties:
+      hibernate:
+        jdbc:
+          time_zone: UTC
+
+logging:
+  level:
+    org.hibernate.SQL: off
+    org.hibernate.type: off
+
+jwt:
+  secret: ${JWT_SECRET_KEY}
+  access-token-expire-minutes: ${JWT_ACCESS_TOKEN_EXPIRATION_MINUTES:60}
+  refresh-token-expire-days: ${JWT_REFRESH_TOKEN_EXPIRATION_DAYS:14}
+
+springdoc:
+  swagger-ui:
+    enabled: false # 운영에서는 비활성화
+  api-docs:
+    enabled: false
