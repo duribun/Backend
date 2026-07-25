@@ -1,0 +1,31 @@
+spring:
+  config:
+    activate:
+      on-profile: test
+
+  datasource:
+    url: jdbc:h2:mem:duribun_test;MODE=PostgreSQL;DB_CLOSE_DELAY=-1
+    driver-class-name: org.h2.Driver
+    username: sa
+    password:
+
+  jpa:
+    hibernate:
+      ddl-auto: create-drop
+    properties:
+      hibernate:
+        format_sql: true
+
+jwt:
+  secret: ZHVyaWJ1bi10ZXN0LWp3dC1zZWNyZXQta2V5LWZvci11bml0LXRlc3RzLTMyYnl0ZXM=
+  access-token-expire-minutes: 60
+  refresh-token-expire-days: 14
+
+oauth2:
+  google:
+    web-client-id: test-google-web-client-id
+  kakao:
+    rest-api-key: test-kakao-rest-api-key
+  naver:
+    client-id: test-naver-client-id
+    client-secret: test-naver-client-secret

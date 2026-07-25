@@ -1,0 +1,47 @@
+spring:
+  # Time Zone Setup ---------------------------------------------------------
+  jackson:
+    time-zone: UTC
+    datatype:
+      datetime:
+        write-dates-as-timestamps: false
+
+  # Run Profile Environment
+  profiles:
+    active: dev # 개발할 때는 dev, 배포할 때는 prod
+
+  # Database Setup (PostgreSQL) ---------------------------------------------------------
+  datasource:
+    url: jdbc:postgresql://${DB_HOST}:${DB_PORT:5432}/${DB_NAME}?reWriteBatchedInserts=true&stringtype=unspecified
+    driver-class-name: org.postgresql.Driver
+    username: ${DB_USERNAME:root}
+    password: ${DB_PASSWORD}
+    hikari:
+      connection-init-sql: SET TIME ZONE 'UTC'
+      maximum-pool-size: 6 # HikariCP 권장: vCPU * 2 + alpha, 인원/트래픽 늘면 조정
+      minimum-idle: 6
+      connection-timeout: 30000
+
+# Utils Section ----------------------------------------------
+app:
+  # 모바일 앱 대상이라 쿠키 기반 설정 없음. 필요 시(관리자 웹 등) 이 자리에 추가.
+  allowed-origins: "${ALLOWED_ORIGINS:http://localhost:8080}"
+  backend-base-url: "${BACKEND_BASE_URL:http://localhost:8080}"
+
+# 소셜 로그인 - 모바일 앱이 각 플랫폼 SDK로 발급받은 토큰을 검증하는 방식
+# (oauth2-domain-task.md 참고, Spring Security의 oauth2Login 리다이렉트 플로우는 사용하지 않음)
+oauth2:
+  google:
+    web-client-id: ${OAUTH_GOOGLE_WEB_CLIENT_ID}
+  kakao:
+    rest-api-key: ${OAUTH_KAKAO_REST_API_KEY}
+  naver:
+    client-id: ${OAUTH_NAVER_CLIENT_ID}
+    client-secret: ${OAUTH_NAVER_CLIENT_SECRET}
+
+# Swagger
+springdoc:
+  swagger-ui:
+    path: ${SWAGGER_UI_PATH:/swagger-ui.html}
+  api-docs:
+    path: ${SWAGGER_JSON_PATH:/v3/api-docs}
