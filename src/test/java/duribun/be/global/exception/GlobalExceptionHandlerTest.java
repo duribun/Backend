@@ -52,6 +52,13 @@ class GlobalExceptionHandlerTest {
     }
 
     @Test
+    void RegionNotFoundException은_404를_반환한다() throws Exception {
+        mockMvc.perform(get("/test/region-not-found"))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.message").value("존재하지 않는 지역입니다"));
+    }
+
+    @Test
     void 요청_body_유효성_검증_실패는_400을_반환한다() throws Exception {
         mockMvc.perform(post("/test/validate")
                         .contentType(MediaType.APPLICATION_JSON)
@@ -77,6 +84,11 @@ class GlobalExceptionHandlerTest {
         @GetMapping("/invalid-refresh-token")
         public void invalidRefreshToken() {
             throw new InvalidRefreshTokenException("리프레시 토큰이 유효하지 않습니다");
+        }
+
+        @GetMapping("/region-not-found")
+        public void regionNotFound() {
+            throw new RegionNotFoundException("존재하지 않는 지역입니다");
         }
 
         @PostMapping("/validate")
