@@ -4,6 +4,7 @@ import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.springframework.dao.OptimisticLockingFailureException;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
@@ -59,6 +60,20 @@ class GlobalExceptionHandlerTest {
     }
 
     @Test
+    void InsufficientPointException은_409를_반환한다() throws Exception {
+        mockMvc.perform(get("/test/insufficient-point"))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.message").value("포인트 잔액이 부족합니다"));
+    }
+
+    @Test
+    void OptimisticLockingFailureException은_409를_반환한다() throws Exception {
+        mockMvc.perform(get("/test/optimistic-lock"))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.message").value("다른 요청에 의해 처리 중입니다. 잠시 후 다시 시도해주세요"));
+    }
+
+    @Test
     void 요청_body_유효성_검증_실패는_400을_반환한다() throws Exception {
         mockMvc.perform(post("/test/validate")
                         .contentType(MediaType.APPLICATION_JSON)
@@ -89,6 +104,16 @@ class GlobalExceptionHandlerTest {
         @GetMapping("/region-not-found")
         public void regionNotFound() {
             throw new RegionNotFoundException("존재하지 않는 지역입니다");
+        }
+
+        @GetMapping("/insufficient-point")
+        public void insufficientPoint() {
+            throw new InsufficientPointException("포인트 잔액이 부족합니다");
+        }
+
+        @GetMapping("/optimistic-lock")
+        public void optimisticLock() {
+            throw new OptimisticLockingFailureException("stale version");
         }
 
         @PostMapping("/validate")
