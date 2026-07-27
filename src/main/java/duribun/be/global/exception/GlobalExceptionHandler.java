@@ -1,5 +1,6 @@
 package duribun.be.global.exception;
 
+import org.springframework.dao.OptimisticLockingFailureException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.MethodArgumentNotValidException;
@@ -27,6 +28,17 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(RegionNotFoundException.class)
     public ResponseEntity<ErrorResponse> handleRegionNotFound(RegionNotFoundException e) {
         return ResponseEntity.status(HttpStatus.NOT_FOUND).body(ErrorResponse.of(e.getMessage()));
+    }
+
+    @ExceptionHandler(InsufficientPointException.class)
+    public ResponseEntity<ErrorResponse> handleInsufficientPoint(InsufficientPointException e) {
+        return ResponseEntity.status(HttpStatus.CONFLICT).body(ErrorResponse.of(e.getMessage()));
+    }
+
+    @ExceptionHandler(OptimisticLockingFailureException.class)
+    public ResponseEntity<ErrorResponse> handleOptimisticLockingFailure(OptimisticLockingFailureException e) {
+        return ResponseEntity.status(HttpStatus.CONFLICT)
+                .body(ErrorResponse.of("다른 요청에 의해 처리 중입니다. 잠시 후 다시 시도해주세요"));
     }
 
     @ExceptionHandler(MethodArgumentNotValidException.class)
