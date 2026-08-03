@@ -35,6 +35,16 @@ public class GlobalExceptionHandler {
         return ResponseEntity.status(HttpStatus.CONFLICT).body(ErrorResponse.of(e.getMessage()));
     }
 
+    @ExceptionHandler(AttractionNotFoundException.class)
+    public ResponseEntity<ErrorResponse> handleAttractionNotFound(AttractionNotFoundException e) {
+        return ResponseEntity.status(HttpStatus.NOT_FOUND).body(ErrorResponse.of(e.getMessage()));
+    }
+
+    @ExceptionHandler(TourApiCallException.class)
+    public ResponseEntity<ErrorResponse> handleTourApiCallException(TourApiCallException e) {
+        return ResponseEntity.status(HttpStatus.BAD_GATEWAY).body(ErrorResponse.of(e.getMessage()));
+    }
+
     @ExceptionHandler(OptimisticLockingFailureException.class)
     public ResponseEntity<ErrorResponse> handleOptimisticLockingFailure(OptimisticLockingFailureException e) {
         return ResponseEntity.status(HttpStatus.CONFLICT)

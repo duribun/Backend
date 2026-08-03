@@ -74,6 +74,20 @@ class GlobalExceptionHandlerTest {
     }
 
     @Test
+    void AttractionNotFoundException은_404를_반환한다() throws Exception {
+        mockMvc.perform(get("/test/attraction-not-found"))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.message").value("존재하지 않는 관광지입니다"));
+    }
+
+    @Test
+    void TourApiCallException은_502를_반환한다() throws Exception {
+        mockMvc.perform(get("/test/tour-api-call-failed"))
+                .andExpect(status().isBadGateway())
+                .andExpect(jsonPath("$.message").value("TourAPI 호출에 실패했습니다"));
+    }
+
+    @Test
     void 요청_body_유효성_검증_실패는_400을_반환한다() throws Exception {
         mockMvc.perform(post("/test/validate")
                         .contentType(MediaType.APPLICATION_JSON)
@@ -114,6 +128,16 @@ class GlobalExceptionHandlerTest {
         @GetMapping("/optimistic-lock")
         public void optimisticLock() {
             throw new OptimisticLockingFailureException("stale version");
+        }
+
+        @GetMapping("/attraction-not-found")
+        public void attractionNotFound() {
+            throw new AttractionNotFoundException("존재하지 않는 관광지입니다");
+        }
+
+        @GetMapping("/tour-api-call-failed")
+        public void tourApiCallFailed() {
+            throw new TourApiCallException("TourAPI 호출에 실패했습니다");
         }
 
         @PostMapping("/validate")

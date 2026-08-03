@@ -39,6 +39,11 @@ oauth2:
     client-id: ${OAUTH_NAVER_CLIENT_ID}
     client-secret: ${OAUTH_NAVER_CLIENT_SECRET}
 
+# 한국관광공사 TourAPI 4.0 (KorService2) - map 도메인 관광지 정보 연동
+tour-api:
+  base-url: "${TOUR_API_BASE_URL:https://apis.data.go.kr/B551011/KorService2}"
+  service-key: ${TOUR_API_SERVICE_KEY:}
+
 # Swagger
 springdoc:
   swagger-ui:
