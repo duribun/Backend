@@ -157,6 +157,46 @@ class AuthControllerTest {
                 .andExpect(status().isUnauthorized());
     }
 
+    @Test
+    void logout_유효한_refreshToken이면_204를_반환하고_토큰이_삭제된다() throws Exception {
+        doReturn(new SocialUserInfo("google-pid-4", "g4@test.com", "google-nick4"))
+                .when(googleAuthClient).getUserInfo("google-id-token");
+
+        String loginResponseJson = mockMvc.perform(post("/api/auth/login/google")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(new TokenBody("google-id-token"))))
+                .andExpect(status().isOk())
+                .andReturn().getResponse().getContentAsString();
+
+        String refreshToken = objectMapper.readTree(loginResponseJson).get("refreshToken").asString();
+
+        mockMvc.perform(post("/api/auth/logout")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(new RefreshBody(refreshToken))))
+                .andExpect(status().isNoContent());
+
+        mockMvc.perform(post("/api/auth/reissue")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(new RefreshBody(refreshToken))))
+                .andExpect(status().isUnauthorized());
+    }
+
+    @Test
+    void logout_존재하지_않는_토큰이어도_204를_반환한다() throws Exception {
+        mockMvc.perform(post("/api/auth/logout")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(new RefreshBody("unknown-refresh-token"))))
+                .andExpect(status().isNoContent());
+    }
+
+    @Test
+    void logout_refreshToken이_비어있으면_400을_반환한다() throws Exception {
+        mockMvc.perform(post("/api/auth/logout")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(new RefreshBody(""))))
+                .andExpect(status().isBadRequest());
+    }
+
     private record TokenBody(String token) {
     }
 

@@ -26,6 +26,7 @@ import java.util.List;
 import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
@@ -110,6 +111,22 @@ class AuthServiceTest {
     }
 
     @Test
+    void login_탈퇴한_유저가_재로그인하면_status가_ACTIVE로_복구된다() {
+        User withdrawnUser = userWithId(1L, SocialProvider.GOOGLE, "pid-withdrawn");
+        withdrawnUser.withdraw();
+        when(googleClient.getUserInfo("google-token")).thenReturn(new SocialUserInfo("pid-withdrawn", "a@a.com", "nick"));
+        when(userRepository.findByProviderAndProviderId(SocialProvider.GOOGLE, "pid-withdrawn")).thenReturn(Optional.of(withdrawnUser));
+        when(jwtTokenProvider.createAccessToken(1L, Role.USER)).thenReturn("access-token");
+        when(jwtTokenProvider.createRefreshToken(1L)).thenReturn("refresh-token");
+        when(jwtTokenProvider.getExpiration("refresh-token")).thenReturn(LocalDateTime.now().plusDays(14));
+
+        authService.login("google", "google-token");
+
+        assertThat(withdrawnUser.isWithdrawn()).isFalse();
+        assertThat(withdrawnUser.getWithdrawnAt()).isNull();
+    }
+
+    @Test
     void login_지원하지_않는_provider면_예외를_던진다() {
         assertThatThrownBy(() -> authService.login("facebook", "token"))
                 .isInstanceOf(UnsupportedProviderException.class);
@@ -180,5 +197,26 @@ class AuthServiceTest {
 
         assertThatThrownBy(() -> authService.reissue(refreshTokenValue))
                 .isInstanceOf(InvalidRefreshTokenException.class);
+    }
+
+    @Test
+    void logout_존재하는_토큰이면_삭제한다() {
+        authService.logout("some-refresh-token");
+
+        verify(refreshTokenRepository).deleteByToken("some-refresh-token");
+    }
+
+    @Test
+    void logout_존재하지_않는_토큰이어도_예외없이_처리된다() {
+        assertThatCode(() -> authService.logout("unknown-token")).doesNotThrowAnyException();
+
+        verify(refreshTokenRepository).deleteByToken("unknown-token");
+    }
+
+    @Test
+    void revokeAllTokens_유저의_모든_리프레시토큰을_삭제한다() {
+        authService.revokeAllTokens(1L);
+
+        verify(refreshTokenRepository).deleteByUserId(1L);
     }
 }
