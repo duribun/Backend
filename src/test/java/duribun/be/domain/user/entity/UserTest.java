@@ -30,4 +30,36 @@ class UserTest {
         assertThat(user.getEmail()).isNull();
         assertThat(user.getNickname()).isNull();
     }
+
+    @Test
+    void create_호출시_status는_기본적으로_ACTIVE다() {
+        User user = User.create(new SocialUserInfo("provider-id-789", "a@a.com", "nick"), SocialProvider.NAVER);
+
+        assertThat(user.getStatus()).isEqualTo(UserStatus.ACTIVE);
+        assertThat(user.getWithdrawnAt()).isNull();
+        assertThat(user.isWithdrawn()).isFalse();
+    }
+
+    @Test
+    void withdraw_호출시_status가_WITHDRAWN이고_withdrawnAt이_기록된다() {
+        User user = User.create(new SocialUserInfo("provider-id-999", "a@a.com", "nick"), SocialProvider.NAVER);
+
+        user.withdraw();
+
+        assertThat(user.getStatus()).isEqualTo(UserStatus.WITHDRAWN);
+        assertThat(user.getWithdrawnAt()).isNotNull();
+        assertThat(user.isWithdrawn()).isTrue();
+    }
+
+    @Test
+    void reactivate_호출시_status가_ACTIVE이고_withdrawnAt이_null이_된다() {
+        User user = User.create(new SocialUserInfo("provider-id-111", "a@a.com", "nick"), SocialProvider.NAVER);
+        user.withdraw();
+
+        user.reactivate();
+
+        assertThat(user.getStatus()).isEqualTo(UserStatus.ACTIVE);
+        assertThat(user.getWithdrawnAt()).isNull();
+        assertThat(user.isWithdrawn()).isFalse();
+    }
 }

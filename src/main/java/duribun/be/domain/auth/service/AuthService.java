@@ -47,6 +47,9 @@ public class AuthService {
         var existingUser = userRepository.findByProviderAndProviderId(provider, userInfo.providerId());
         boolean isNewUser = existingUser.isEmpty();
         User user = existingUser.orElseGet(() -> userRepository.save(User.create(userInfo, provider)));
+        if (user.isWithdrawn()) {
+            user.reactivate();
+        }
 
         String accessToken = jwtTokenProvider.createAccessToken(user.getId(), user.getRole());
         String refreshTokenValue = jwtTokenProvider.createRefreshToken(user.getId());
@@ -72,5 +75,13 @@ public class AuthService {
 
         String newAccessToken = jwtTokenProvider.createAccessToken(user.getId(), user.getRole());
         return new TokenResponse(newAccessToken, refreshTokenValue);
+    }
+
+    public void logout(String refreshTokenValue) {
+        refreshTokenRepository.deleteByToken(refreshTokenValue);
+    }
+
+    public void revokeAllTokens(Long userId) {
+        refreshTokenRepository.deleteByUserId(userId);
     }
 }

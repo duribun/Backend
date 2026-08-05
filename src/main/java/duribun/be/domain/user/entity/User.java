@@ -15,6 +15,8 @@ import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
+import java.time.LocalDateTime;
+
 @Getter
 @Entity
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
@@ -45,15 +47,37 @@ public class User extends BaseTimeEntity {
     @Column(nullable = false)
     private Role role;
 
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
+    private UserStatus status;
+
+    @Column
+    private LocalDateTime withdrawnAt;
+
     private User(String email, String nickname, SocialProvider provider, String providerId) {
         this.email = email;
         this.nickname = nickname;
         this.provider = provider;
         this.providerId = providerId;
         this.role = Role.USER;
+        this.status = UserStatus.ACTIVE;
     }
 
     public static User create(SocialUserInfo info, SocialProvider provider) {
         return new User(info.email(), info.nickname(), provider, info.providerId());
+    }
+
+    public void withdraw() {
+        this.status = UserStatus.WITHDRAWN;
+        this.withdrawnAt = LocalDateTime.now();
+    }
+
+    public void reactivate() {
+        this.status = UserStatus.ACTIVE;
+        this.withdrawnAt = null;
+    }
+
+    public boolean isWithdrawn() {
+        return this.status == UserStatus.WITHDRAWN;
     }
 }
