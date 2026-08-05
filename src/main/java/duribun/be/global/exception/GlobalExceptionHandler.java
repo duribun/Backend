@@ -35,6 +35,11 @@ public class GlobalExceptionHandler {
         return ResponseEntity.status(HttpStatus.CONFLICT).body(ErrorResponse.of(e.getMessage()));
     }
 
+    @ExceptionHandler(AlreadyWithdrawnUserException.class)
+    public ResponseEntity<ErrorResponse> handleAlreadyWithdrawnUser(AlreadyWithdrawnUserException e) {
+        return ResponseEntity.status(HttpStatus.CONFLICT).body(ErrorResponse.of(e.getMessage()));
+    }
+
     @ExceptionHandler(AttractionNotFoundException.class)
     public ResponseEntity<ErrorResponse> handleAttractionNotFound(AttractionNotFoundException e) {
         return ResponseEntity.status(HttpStatus.NOT_FOUND).body(ErrorResponse.of(e.getMessage()));

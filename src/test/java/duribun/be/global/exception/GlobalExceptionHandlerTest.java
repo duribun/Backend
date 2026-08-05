@@ -81,6 +81,13 @@ class GlobalExceptionHandlerTest {
     }
 
     @Test
+    void AlreadyWithdrawnUserException은_409를_반환한다() throws Exception {
+        mockMvc.perform(get("/test/already-withdrawn-user"))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.message").value("이미 탈퇴한 사용자입니다"));
+    }
+
+    @Test
     void TourApiCallException은_502를_반환한다() throws Exception {
         mockMvc.perform(get("/test/tour-api-call-failed"))
                 .andExpect(status().isBadGateway())
@@ -138,6 +145,11 @@ class GlobalExceptionHandlerTest {
         @GetMapping("/tour-api-call-failed")
         public void tourApiCallFailed() {
             throw new TourApiCallException("TourAPI 호출에 실패했습니다");
+        }
+
+        @GetMapping("/already-withdrawn-user")
+        public void alreadyWithdrawnUser() {
+            throw new AlreadyWithdrawnUserException("이미 탈퇴한 사용자입니다");
         }
 
         @PostMapping("/validate")
