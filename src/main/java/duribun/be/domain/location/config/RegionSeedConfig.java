@@ -6,12 +6,14 @@ import org.springframework.boot.CommandLineRunner;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Profile;
+import org.springframework.core.annotation.Order;
 
 @Configuration
 public class RegionSeedConfig {
 
     @Bean
     @Profile("dev")
+    @Order(1)
     public CommandLineRunner regionSeedRunner(RegionRepository regionRepository) {
         // 일단 API를 받아오는 것도 X 예시 데이터인 서울 및 강릉만
         return args -> {
