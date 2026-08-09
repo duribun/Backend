@@ -56,6 +56,21 @@ public class GlobalExceptionHandler {
                 .body(ErrorResponse.of("다른 요청에 의해 처리 중입니다. 잠시 후 다시 시도해주세요"));
     }
 
+    @ExceptionHandler(ItemNotFoundException.class)
+    public ResponseEntity<ErrorResponse> handleItemNotFound(ItemNotFoundException e) {
+        return ResponseEntity.status(HttpStatus.NOT_FOUND).body(ErrorResponse.of(e.getMessage()));
+    }
+
+    @ExceptionHandler(AlreadyPurchasedException.class)
+    public ResponseEntity<ErrorResponse> handleAlreadyPurchased(AlreadyPurchasedException e) {
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(ErrorResponse.of(e.getMessage()));
+    }
+
+    @ExceptionHandler(ItemNotOwnedException.class)
+    public ResponseEntity<ErrorResponse> handleItemNotOwned(ItemNotOwnedException e) {
+        return ResponseEntity.status(HttpStatus.FORBIDDEN).body(ErrorResponse.of(e.getMessage()));
+    }
+
     @ExceptionHandler(MethodArgumentNotValidException.class)
     public ResponseEntity<ErrorResponse> handleMethodArgumentNotValid(MethodArgumentNotValidException e) {
         String message = e.getBindingResult().getFieldErrors().stream()
