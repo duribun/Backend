@@ -71,6 +71,15 @@ class ShopControllerTest {
                     .andExpect(status().isUnauthorized());
         }
 
+        @Test
+        void 인증없이_접근하면_명세와_동일한_형식의_에러_바디를_반환한다() throws Exception {
+            mockMvc.perform(get("/api/shop/items"))
+                    .andExpect(status().isUnauthorized())
+                    .andExpect(jsonPath("$.status").value(401))
+                    .andExpect(jsonPath("$.error").value("Unauthorized"))
+                    .andExpect(jsonPath("$.message").value("인증이 필요합니다"));
+        }
+
         private MockHttpServletRequestBuilder buildRequest(String method, String url) {
             return switch (method) {
                 case "GET" -> get(url);
@@ -137,7 +146,10 @@ class ShopControllerTest {
         void 존재하지_않는_아이템이면_404를_반환한다() throws Exception {
             mockMvc.perform(post("/api/shop/items/99999/purchase")
                             .header(HttpHeaders.AUTHORIZATION, bearerToken(1L)))
-                    .andExpect(status().isNotFound());
+                    .andExpect(status().isNotFound())
+                    .andExpect(jsonPath("$.status").value(404))
+                    .andExpect(jsonPath("$.error").value("Not Found"))
+                    .andExpect(jsonPath("$.message").value("존재하지 않는 아이템입니다."));
         }
 
         @Test
@@ -148,7 +160,10 @@ class ShopControllerTest {
 
             mockMvc.perform(post("/api/shop/items/" + item.getId() + "/purchase")
                             .header(HttpHeaders.AUTHORIZATION, bearerToken(1L)))
-                    .andExpect(status().isBadRequest());
+                    .andExpect(status().isBadRequest())
+                    .andExpect(jsonPath("$.status").value(400))
+                    .andExpect(jsonPath("$.error").value("Bad Request"))
+                    .andExpect(jsonPath("$.message").value("이미 구매한 아이템입니다."));
         }
 
         @Test
@@ -157,7 +172,10 @@ class ShopControllerTest {
 
             mockMvc.perform(post("/api/shop/items/" + item.getId() + "/purchase")
                             .header(HttpHeaders.AUTHORIZATION, bearerToken(1L)))
-                    .andExpect(status().isConflict());
+                    .andExpect(status().isConflict())
+                    .andExpect(jsonPath("$.status").value(409))
+                    .andExpect(jsonPath("$.error").value("Conflict"))
+                    .andExpect(jsonPath("$.message").value("포인트 잔액이 부족합니다"));
         }
     }
 
@@ -196,7 +214,10 @@ class ShopControllerTest {
 
             mockMvc.perform(patch("/api/shop/items/" + item.getId() + "/equip")
                             .header(HttpHeaders.AUTHORIZATION, bearerToken(1L)))
-                    .andExpect(status().isForbidden());
+                    .andExpect(status().isForbidden())
+                    .andExpect(jsonPath("$.status").value(403))
+                    .andExpect(jsonPath("$.error").value("Forbidden"))
+                    .andExpect(jsonPath("$.message").value("구매하지 않은 아이템입니다."));
         }
 
         @Test
