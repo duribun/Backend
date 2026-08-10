@@ -56,6 +56,16 @@ public class GlobalExceptionHandler {
                 .body(ErrorResponse.of("다른 요청에 의해 처리 중입니다. 잠시 후 다시 시도해주세요"));
     }
 
+    @ExceptionHandler(RecordNotFoundException.class)
+    public ResponseEntity<ErrorResponse> handleRecordNotFound(RecordNotFoundException e) {
+        return ResponseEntity.status(HttpStatus.NOT_FOUND).body(ErrorResponse.of(e.getMessage()));
+    }
+
+    @ExceptionHandler(RecordForbiddenException.class)
+    public ResponseEntity<ErrorResponse> handleRecordForbidden(RecordForbiddenException e) {
+        return ResponseEntity.status(HttpStatus.FORBIDDEN).body(ErrorResponse.of(e.getMessage()));
+    }
+
     @ExceptionHandler(MethodArgumentNotValidException.class)
     public ResponseEntity<ErrorResponse> handleMethodArgumentNotValid(MethodArgumentNotValidException e) {
         String message = e.getBindingResult().getFieldErrors().stream()
