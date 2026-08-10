@@ -26,6 +26,7 @@ import org.junit.jupiter.params.provider.EnumSource;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.dao.DataIntegrityViolationException;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -210,6 +211,19 @@ class ShopServiceTest {
                     .hasMessage("포인트 잔액이 부족합니다.");
 
             verify(userItemRepository, never()).save(any());
+        }
+
+        @Test
+        void 동시_중복_구매로_유니크_제약이_위반되면_AlreadyPurchasedException을_던진다() {
+            Item item = itemWithId(1L, ItemCategory.GLASSES);
+            when(itemRepository.findById(1L)).thenReturn(Optional.of(item));
+            when(userItemRepository.existsByUserIdAndItemId(1L, 1L)).thenReturn(false);
+            when(userItemRepository.save(any(UserItem.class)))
+                    .thenThrow(new DataIntegrityViolationException("unique constraint violated"));
+
+            assertThatThrownBy(() -> shopService.purchaseItem(1L, 1L))
+                    .isInstanceOf(AlreadyPurchasedException.class)
+                    .hasMessage("이미 구매한 아이템입니다.");
         }
     }
 

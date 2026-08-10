@@ -14,6 +14,7 @@ import duribun.be.domain.shop.repository.UserItemRepository;
 import duribun.be.global.exception.AlreadyPurchasedException;
 import duribun.be.global.exception.ItemNotFoundException;
 import duribun.be.global.exception.ItemNotOwnedException;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import java.util.List;
@@ -67,7 +68,12 @@ public class ShopService {
         }
 
         pointService.spend(userId, item.getPrice(), PointReason.SHOP_PURCHASE);
-        userItemRepository.save(UserItem.create(userId, itemId, timeProvider.now()));
+        try {
+            userItemRepository.save(UserItem.create(userId, itemId, timeProvider.now()));
+        } catch (DataIntegrityViolationException e) {
+            // 동시에 같은 아이템을 중복 구매 요청한 경우: unique 제약 위반을 논리적 중복 구매로 변환한다
+            throw new AlreadyPurchasedException("이미 구매한 아이템입니다.");
+        }
 
         return PurchaseResponse.of(itemId, item.getName(), pointService.getBalance(userId));
     }
