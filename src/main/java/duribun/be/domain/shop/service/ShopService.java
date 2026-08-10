@@ -81,11 +81,17 @@ public class ShopService {
     public EquipResponse toggleEquip(Long userId, Long itemId) {
         Item item = itemRepository.findById(itemId)
                 .orElseThrow(() -> new ItemNotFoundException("존재하지 않는 아이템입니다."));
-        UserItem userItem = userItemRepository.findByUserIdAndItemId(userId, itemId)
+
+        // 같은 유저의 보유 아이템 행 전체를 잠근 뒤 읽고 수정한다: 동일 카테고리를 대상으로 하는
+        // 동시 착용 요청이 서로 다른 행을 건드려 둘 다 성공해버리는 레이스를 직렬화로 막는다.
+        List<UserItem> myItems = userItemRepository.findByUserIdForUpdate(userId);
+        UserItem userItem = myItems.stream()
+                .filter(ui -> ui.getItemId().equals(itemId))
+                .findFirst()
                 .orElseThrow(() -> new ItemNotOwnedException("구매하지 않은 아이템입니다."));
 
         if (!userItem.isEquipped()) {
-            unequipSameCategory(userId, item, itemId);
+            unequipSameCategory(myItems, item, itemId);
             userItem.equip();
         } else {
             userItem.unequip();
@@ -94,8 +100,9 @@ public class ShopService {
         return EquipResponse.of(itemId, userItem.isEquipped());
     }
 
-    private void unequipSameCategory(Long userId, Item targetItem, Long excludeItemId) {
-        List<UserItem> equippedOthers = userItemRepository.findByUserIdAndIsEquippedTrue(userId).stream()
+    private void unequipSameCategory(List<UserItem> myItems, Item targetItem, Long excludeItemId) {
+        List<UserItem> equippedOthers = myItems.stream()
+                .filter(UserItem::isEquipped)
                 .filter(ui -> !ui.getItemId().equals(excludeItemId))
                 .toList();
 

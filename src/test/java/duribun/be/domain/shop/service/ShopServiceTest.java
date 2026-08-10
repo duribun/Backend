@@ -237,8 +237,7 @@ class ShopServiceTest {
             Item item = itemWithId(1L, ItemCategory.GLASSES);
             UserItem userItem = userItemWithId(10L, 1L, 1L);
             when(itemRepository.findById(1L)).thenReturn(Optional.of(item));
-            when(userItemRepository.findByUserIdAndItemId(1L, 1L)).thenReturn(Optional.of(userItem));
-            when(userItemRepository.findByUserIdAndIsEquippedTrue(1L)).thenReturn(List.of());
+            when(userItemRepository.findByUserIdForUpdate(1L)).thenReturn(List.of(userItem));
 
             EquipResponse response = shopService.toggleEquip(1L, 1L);
 
@@ -252,7 +251,7 @@ class ShopServiceTest {
             UserItem userItem = userItemWithId(10L, 1L, 1L);
             userItem.equip();
             when(itemRepository.findById(1L)).thenReturn(Optional.of(item));
-            when(userItemRepository.findByUserIdAndItemId(1L, 1L)).thenReturn(Optional.of(userItem));
+            when(userItemRepository.findByUserIdForUpdate(1L)).thenReturn(List.of(userItem));
 
             EquipResponse response = shopService.toggleEquip(1L, 1L);
 
@@ -270,8 +269,7 @@ class ShopServiceTest {
             UserItem userItem2 = userItemWithId(20L, 1L, 2L);
 
             when(itemRepository.findById(2L)).thenReturn(Optional.of(item2));
-            when(userItemRepository.findByUserIdAndItemId(1L, 2L)).thenReturn(Optional.of(userItem2));
-            when(userItemRepository.findByUserIdAndIsEquippedTrue(1L)).thenReturn(List.of(userItem1));
+            when(userItemRepository.findByUserIdForUpdate(1L)).thenReturn(List.of(userItem1, userItem2));
             when(itemRepository.findAllById(List.of(1L))).thenReturn(List.of(item1));
 
             EquipResponse response = shopService.toggleEquip(1L, 2L);
@@ -290,8 +288,7 @@ class ShopServiceTest {
             UserItem newHat = userItemWithId(20L, 1L, 2L);
 
             when(itemRepository.findById(2L)).thenReturn(Optional.of(hat));
-            when(userItemRepository.findByUserIdAndItemId(1L, 2L)).thenReturn(Optional.of(newHat));
-            when(userItemRepository.findByUserIdAndIsEquippedTrue(1L)).thenReturn(List.of(equippedGlasses));
+            when(userItemRepository.findByUserIdForUpdate(1L)).thenReturn(List.of(equippedGlasses, newHat));
             when(itemRepository.findAllById(List.of(1L))).thenReturn(List.of(glasses));
 
             shopService.toggleEquip(1L, 2L);
@@ -313,7 +310,7 @@ class ShopServiceTest {
         void 미구매_아이템이면_ItemNotOwnedException을_던진다() {
             Item item = itemWithId(1L, ItemCategory.BAG);
             when(itemRepository.findById(1L)).thenReturn(Optional.of(item));
-            when(userItemRepository.findByUserIdAndItemId(1L, 1L)).thenReturn(Optional.empty());
+            when(userItemRepository.findByUserIdForUpdate(1L)).thenReturn(List.of());
 
             assertThatThrownBy(() -> shopService.toggleEquip(1L, 1L))
                     .isInstanceOf(ItemNotOwnedException.class)
