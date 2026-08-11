@@ -70,6 +70,16 @@ public class GlobalExceptionHandler {
         return respond(HttpStatus.FORBIDDEN, e.getMessage());
     }
 
+    @ExceptionHandler(RecordNotFoundException.class)
+    public ResponseEntity<ErrorResponse> handleRecordNotFound(RecordNotFoundException e) {
+        return ResponseEntity.status(HttpStatus.NOT_FOUND).body(ErrorResponse.of(e.getMessage()));
+    }
+
+    @ExceptionHandler(RecordForbiddenException.class)
+    public ResponseEntity<ErrorResponse> handleRecordForbidden(RecordForbiddenException e) {
+        return ResponseEntity.status(HttpStatus.FORBIDDEN).body(ErrorResponse.of(e.getMessage()));
+    }
+
     @ExceptionHandler(MethodArgumentNotValidException.class)
     public ResponseEntity<ErrorResponse> handleMethodArgumentNotValid(MethodArgumentNotValidException e) {
         String message = e.getBindingResult().getFieldErrors().stream()
