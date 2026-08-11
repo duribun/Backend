@@ -1,8 +1,10 @@
 package duribun.be.global.exception;
 
-public record ErrorResponse(String message) {
+import org.springframework.http.HttpStatus;
 
-    public static ErrorResponse of(String message) {
-        return new ErrorResponse(message);
+public record ErrorResponse(int status, String error, String message) {
+
+    public static ErrorResponse of(HttpStatus status, String message) {
+        return new ErrorResponse(status.value(), status.getReasonPhrase(), message);
     }
 }

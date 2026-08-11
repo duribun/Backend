@@ -35,6 +35,8 @@ class GlobalExceptionHandlerTest {
     void InvalidSocialTokenException은_401을_반환한다() throws Exception {
         mockMvc.perform(get("/test/invalid-social-token"))
                 .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.status").value(401))
+                .andExpect(jsonPath("$.error").value("Unauthorized"))
                 .andExpect(jsonPath("$.message").value("소셜 토큰이 유효하지 않습니다"));
     }
 
@@ -56,6 +58,8 @@ class GlobalExceptionHandlerTest {
     void RegionNotFoundException은_404를_반환한다() throws Exception {
         mockMvc.perform(get("/test/region-not-found"))
                 .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.status").value(404))
+                .andExpect(jsonPath("$.error").value("Not Found"))
                 .andExpect(jsonPath("$.message").value("존재하지 않는 지역입니다"));
     }
 
@@ -63,6 +67,8 @@ class GlobalExceptionHandlerTest {
     void InsufficientPointException은_409를_반환한다() throws Exception {
         mockMvc.perform(get("/test/insufficient-point"))
                 .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.status").value(409))
+                .andExpect(jsonPath("$.error").value("Conflict"))
                 .andExpect(jsonPath("$.message").value("포인트 잔액이 부족합니다"));
     }
 
