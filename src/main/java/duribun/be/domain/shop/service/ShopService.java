@@ -8,6 +8,7 @@ import duribun.be.domain.shop.dto.ItemResponse;
 import duribun.be.domain.shop.dto.MyItemResponse;
 import duribun.be.domain.shop.dto.PurchaseResponse;
 import duribun.be.domain.shop.entity.Item;
+import duribun.be.domain.shop.entity.ItemCategory;
 import duribun.be.domain.shop.entity.UserItem;
 import duribun.be.domain.shop.repository.ItemRepository;
 import duribun.be.domain.shop.repository.UserItemRepository;
@@ -70,7 +71,7 @@ public class ShopService {
 
         pointService.spend(userId, item.getPrice(), PointReason.SHOP_PURCHASE);
         try {
-            userItemRepository.save(UserItem.create(userId, itemId, timeProvider.now()));
+            userItemRepository.save(UserItem.create(userId, itemId, item.getCategory(), timeProvider.now()));
         } catch (DataIntegrityViolationException e) {
             // 동시에 같은 아이템을 중복 구매 요청한 경우: unique 제약 위반을 논리적 중복 구매로 변환한다
             throw new AlreadyPurchasedException("이미 구매한 아이템입니다.");
@@ -80,11 +81,13 @@ public class ShopService {
     }
 
     public EquipResponse toggleEquip(Long userId, Long itemId) {
-        Item item = itemRepository.findById(itemId)
-                .orElseThrow(() -> new ItemNotFoundException("존재하지 않는 아이템입니다."));
+        if (!itemRepository.existsById(itemId)) {
+            throw new ItemNotFoundException("존재하지 않는 아이템입니다.");
+        }
 
         // 같은 유저의 보유 아이템 행 전체를 잠근 뒤 읽고 수정한다: 동일 카테고리를 대상으로 하는
         // 동시 착용 요청이 서로 다른 행을 건드려 둘 다 성공해버리는 레이스를 직렬화로 막는다.
+        // (이 락을 우회하는 경로에 대비한 DB 레벨 부분 유니크 인덱스는 V2 마이그레이션 참고)
         List<UserItem> myItems = userItemRepository.findByUserIdForUpdate(userId);
         UserItem userItem = myItems.stream()
                 .filter(ui -> ui.getItemId().equals(itemId))
@@ -92,7 +95,7 @@ public class ShopService {
                 .orElseThrow(() -> new ItemNotOwnedException("구매하지 않은 아이템입니다."));
 
         if (!userItem.isEquipped()) {
-            unequipSameCategory(myItems, item, itemId);
+            unequipSameCategory(myItems, userItem.getCategory(), itemId);
             userItem.equip();
         } else {
             userItem.unequip();
@@ -101,25 +104,11 @@ public class ShopService {
         return EquipResponse.of(itemId, userItem.isEquipped());
     }
 
-    private void unequipSameCategory(List<UserItem> myItems, Item targetItem, Long excludeItemId) {
-        List<UserItem> equippedOthers = myItems.stream()
+    private void unequipSameCategory(List<UserItem> myItems, ItemCategory targetCategory, Long excludeItemId) {
+        myItems.stream()
                 .filter(UserItem::isEquipped)
                 .filter(ui -> !ui.getItemId().equals(excludeItemId))
-                .toList();
-
-        if (equippedOthers.isEmpty()) {
-            return;
-        }
-
-        List<Long> otherItemIds = equippedOthers.stream().map(UserItem::getItemId).toList();
-        Map<Long, Item> otherItems = itemRepository.findAllById(otherItemIds).stream()
-                .collect(Collectors.toMap(Item::getId, Function.identity()));
-
-        equippedOthers.stream()
-                .filter(ui -> {
-                    Item other = otherItems.get(ui.getItemId());
-                    return other != null && other.getCategory() == targetItem.getCategory();
-                })
+                .filter(ui -> ui.getCategory() == targetCategory)
                 .forEach(UserItem::unequip);
     }
 }

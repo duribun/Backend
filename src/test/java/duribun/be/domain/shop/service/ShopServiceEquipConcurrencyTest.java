@@ -39,8 +39,8 @@ class ShopServiceEquipConcurrencyTest {
         Long userId = 1L;
         Item item1 = itemRepository.saveAndFlush(Item.create("선글라스1", "설명", 500, null, ItemCategory.GLASSES));
         Item item2 = itemRepository.saveAndFlush(Item.create("선글라스2", "설명", 500, null, ItemCategory.GLASSES));
-        userItemRepository.saveAndFlush(UserItem.create(userId, item1.getId(), LocalDateTime.now()));
-        userItemRepository.saveAndFlush(UserItem.create(userId, item2.getId(), LocalDateTime.now()));
+        userItemRepository.saveAndFlush(UserItem.create(userId, item1.getId(), item1.getCategory(), LocalDateTime.now()));
+        userItemRepository.saveAndFlush(UserItem.create(userId, item2.getId(), item2.getCategory(), LocalDateTime.now()));
 
         List<Long> itemIds = List.of(item1.getId(), item2.getId());
         int threadCount = itemIds.size();

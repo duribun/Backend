@@ -3,6 +3,8 @@ package duribun.be.domain.shop.entity;
 import duribun.be.common.entity.BaseTimeEntity;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
@@ -29,20 +31,25 @@ public class UserItem extends BaseTimeEntity {
     @Column(name = "item_id", nullable = false)
     private Long itemId;
 
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false, length = 20)
+    private ItemCategory category;
+
     @Column(name = "is_equipped", nullable = false)
     private boolean isEquipped = false;
 
     @Column(name = "purchased_at", nullable = false)
     private LocalDateTime purchasedAt;
 
-    private UserItem(Long userId, Long itemId, LocalDateTime purchasedAt) {
+    private UserItem(Long userId, Long itemId, ItemCategory category, LocalDateTime purchasedAt) {
         this.userId = userId;
         this.itemId = itemId;
+        this.category = category;
         this.purchasedAt = purchasedAt;
     }
 
-    public static UserItem create(Long userId, Long itemId, LocalDateTime purchasedAt) {
-        return new UserItem(userId, itemId, purchasedAt);
+    public static UserItem create(Long userId, Long itemId, ItemCategory category, LocalDateTime purchasedAt) {
+        return new UserItem(userId, itemId, category, purchasedAt);
     }
 
     public void equip() {
