@@ -55,6 +55,7 @@ public class ShopService {
                 .collect(Collectors.toMap(Item::getId, Function.identity()));
 
         return userItems.stream()
+                .filter(userItem -> itemsById.containsKey(userItem.getItemId()))
                 .map(userItem -> MyItemResponse.of(itemsById.get(userItem.getItemId()), userItem))
                 .toList();
     }

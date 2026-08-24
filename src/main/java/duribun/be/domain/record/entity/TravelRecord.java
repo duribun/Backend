@@ -57,10 +57,10 @@ public class TravelRecord extends BaseTimeEntity {
 
     public void update(String title, String content, String imageUrl,
                        LocalDate visitedAt, String placeName) {
-        if (title != null) this.title = title;
-        if (content != null) this.content = content;
+        if (title != null && !title.isBlank()) this.title = title;
+        if (content != null && !content.isBlank()) this.content = content;
         if (imageUrl != null) this.imageUrl = imageUrl;
         if (visitedAt != null) this.visitedAt = visitedAt;
-        if (placeName != null) this.placeName = placeName;
+        if (placeName != null && !placeName.isBlank()) this.placeName = placeName;
     }
 }
