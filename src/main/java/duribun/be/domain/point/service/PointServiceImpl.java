@@ -54,12 +54,14 @@ public class PointServiceImpl implements PointService {
     }
 
     @Override
+    @Transactional(readOnly = true)
     public int getBalance(Long userId) {
         return pointAccountRepository.findByUserId(userId)
                 .map(PointAccount::getBalance)
                 .orElse(0);
     }
 
+    @Transactional(readOnly = true)
     public Page<PointHistoryResponse> getHistory(Long userId, Pageable pageable) {
         return pointHistoryRepository.findByUserId(userId, pageable)
                 .map(PointHistoryResponse::from);
