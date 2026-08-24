@@ -148,7 +148,7 @@ class AuthServiceTest {
 
         when(jwtTokenProvider.isTokenValid(refreshTokenValue)).thenReturn(true);
         when(jwtTokenProvider.isRefreshToken(refreshTokenValue)).thenReturn(true);
-        when(refreshTokenRepository.findByToken(refreshTokenValue)).thenReturn(Optional.of(stored));
+        when(refreshTokenRepository.findByTokenHash(RefreshToken.hash(refreshTokenValue))).thenReturn(Optional.of(stored));
         when(userRepository.findById(1L)).thenReturn(Optional.of(user));
         when(jwtTokenProvider.createAccessToken(1L, Role.USER)).thenReturn("new-access-token");
 
@@ -180,7 +180,7 @@ class AuthServiceTest {
     void reissue_DB에_저장되지_않은_refreshToken이면_예외를_던진다() {
         when(jwtTokenProvider.isTokenValid("unknown-token")).thenReturn(true);
         when(jwtTokenProvider.isRefreshToken("unknown-token")).thenReturn(true);
-        when(refreshTokenRepository.findByToken("unknown-token")).thenReturn(Optional.empty());
+        when(refreshTokenRepository.findByTokenHash(RefreshToken.hash("unknown-token"))).thenReturn(Optional.empty());
 
         assertThatThrownBy(() -> authService.reissue("unknown-token"))
                 .isInstanceOf(InvalidRefreshTokenException.class);
@@ -193,7 +193,7 @@ class AuthServiceTest {
 
         when(jwtTokenProvider.isTokenValid(refreshTokenValue)).thenReturn(true);
         when(jwtTokenProvider.isRefreshToken(refreshTokenValue)).thenReturn(true);
-        when(refreshTokenRepository.findByToken(refreshTokenValue)).thenReturn(Optional.of(expired));
+        when(refreshTokenRepository.findByTokenHash(RefreshToken.hash(refreshTokenValue))).thenReturn(Optional.of(expired));
 
         assertThatThrownBy(() -> authService.reissue(refreshTokenValue))
                 .isInstanceOf(InvalidRefreshTokenException.class);
@@ -203,14 +203,14 @@ class AuthServiceTest {
     void logout_존재하는_토큰이면_삭제한다() {
         authService.logout("some-refresh-token");
 
-        verify(refreshTokenRepository).deleteByToken("some-refresh-token");
+        verify(refreshTokenRepository).deleteByTokenHash(RefreshToken.hash("some-refresh-token"));
     }
 
     @Test
     void logout_존재하지_않는_토큰이어도_예외없이_처리된다() {
         assertThatCode(() -> authService.logout("unknown-token")).doesNotThrowAnyException();
 
-        verify(refreshTokenRepository).deleteByToken("unknown-token");
+        verify(refreshTokenRepository).deleteByTokenHash(RefreshToken.hash("unknown-token"));
     }
 
     @Test

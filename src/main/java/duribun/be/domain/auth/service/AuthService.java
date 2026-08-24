@@ -64,7 +64,7 @@ public class AuthService {
             throw new InvalidRefreshTokenException("리프레시 토큰이 유효하지 않습니다");
         }
 
-        RefreshToken storedToken = refreshTokenRepository.findByToken(refreshTokenValue)
+        RefreshToken storedToken = refreshTokenRepository.findByTokenHash(RefreshToken.hash(refreshTokenValue))
                 .orElseThrow(() -> new InvalidRefreshTokenException("리프레시 토큰이 유효하지 않습니다"));
         if (storedToken.isExpired()) {
             throw new InvalidRefreshTokenException("리프레시 토큰이 만료되었습니다");
@@ -78,7 +78,7 @@ public class AuthService {
     }
 
     public void logout(String refreshTokenValue) {
-        refreshTokenRepository.deleteByToken(refreshTokenValue);
+        refreshTokenRepository.deleteByTokenHash(RefreshToken.hash(refreshTokenValue));
     }
 
     public void revokeAllTokens(Long userId) {
