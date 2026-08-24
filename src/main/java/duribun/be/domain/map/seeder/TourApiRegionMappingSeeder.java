@@ -6,7 +6,9 @@ import duribun.be.domain.map.client.TourApiClient;
 import duribun.be.domain.map.dto.TourApiAreaCodeResponse;
 import duribun.be.domain.map.entity.TourApiRegionMapping;
 import duribun.be.domain.map.repository.TourApiRegionMappingRepository;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
@@ -36,15 +38,17 @@ public class TourApiRegionMappingSeeder {
     @Transactional
     public void seed() {
         List<TourApiAreaCodeResponse> provinces = tourApiClient.areaCode(null);
+        Map<String, List<TourApiAreaCodeResponse>> sigunguByProvinceCode = new HashMap<>();
         for (Region region : regionRepository.findAll()) {
             if (tourApiRegionMappingRepository.findByRegionId(region.getId()).isPresent()) {
                 continue;
             }
-            matchRegion(region, provinces);
+            matchRegion(region, provinces, sigunguByProvinceCode);
         }
     }
 
-    private void matchRegion(Region region, List<TourApiAreaCodeResponse> provinces) {
+    private void matchRegion(Region region, List<TourApiAreaCodeResponse> provinces,
+                              Map<String, List<TourApiAreaCodeResponse>> sigunguByProvinceCode) {
         String target = normalize(region.getName());
 
         for (TourApiAreaCodeResponse province : provinces) {
@@ -55,7 +59,11 @@ public class TourApiRegionMappingSeeder {
         }
 
         for (TourApiAreaCodeResponse province : provinces) {
-            for (TourApiAreaCodeResponse sigungu : tourApiClient.areaCode(province.code())) {
+            // province별 시군구 목록을 최초 1회만 조회해 재사용 — 매칭 실패가 반복될 때마다
+            // 같은 province를 재호출하면 TourAPI 일일 트래픽 한도를 빠르게 소진할 수 있다.
+            List<TourApiAreaCodeResponse> sigunguList = sigunguByProvinceCode
+                    .computeIfAbsent(province.code(), tourApiClient::areaCode);
+            for (TourApiAreaCodeResponse sigungu : sigunguList) {
                 if (normalize(sigungu.name()).equals(target)) {
                     save(region.getId(), province.code(), sigungu.code());
                     return;
