@@ -72,12 +72,12 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(RecordNotFoundException.class)
     public ResponseEntity<ErrorResponse> handleRecordNotFound(RecordNotFoundException e) {
-        return ResponseEntity.status(HttpStatus.NOT_FOUND).body(ErrorResponse.of(e.getMessage()));
+        return respond(HttpStatus.NOT_FOUND, e.getMessage());
     }
 
     @ExceptionHandler(RecordForbiddenException.class)
     public ResponseEntity<ErrorResponse> handleRecordForbidden(RecordForbiddenException e) {
-        return ResponseEntity.status(HttpStatus.FORBIDDEN).body(ErrorResponse.of(e.getMessage()));
+        return respond(HttpStatus.FORBIDDEN, e.getMessage());
     }
 
     @ExceptionHandler(MethodArgumentNotValidException.class)
