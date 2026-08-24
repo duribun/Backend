@@ -40,6 +40,11 @@ public class GlobalExceptionHandler {
         return respond(HttpStatus.CONFLICT, e.getMessage());
     }
 
+    @ExceptionHandler(UserNotFoundException.class)
+    public ResponseEntity<ErrorResponse> handleUserNotFound(UserNotFoundException e) {
+        return respond(HttpStatus.NOT_FOUND, e.getMessage());
+    }
+
     @ExceptionHandler(AttractionNotFoundException.class)
     public ResponseEntity<ErrorResponse> handleAttractionNotFound(AttractionNotFoundException e) {
         return respond(HttpStatus.NOT_FOUND, e.getMessage());
