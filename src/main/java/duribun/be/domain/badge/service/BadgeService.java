@@ -11,6 +11,7 @@ import duribun.be.domain.badge.repository.UserVisitCounterRepository;
 import duribun.be.domain.location.event.LocationVerifiedEvent;
 import org.springframework.context.event.EventListener;
 import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.dao.OptimisticLockingFailureException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -23,6 +24,8 @@ import java.util.stream.Collectors;
 @Service
 @Transactional
 public class BadgeService {
+
+    private static final int MAX_VISIT_COUNTER_RETRIES = 3;
 
     private final BadgeRepository badgeRepository;
     private final UserBadgeRepository userBadgeRepository;
@@ -76,18 +79,22 @@ public class BadgeService {
     }
 
     private int increaseVisitCounter(Long userId) {
-        UserVisitCounter counter = userVisitCounterRepository.findByUserId(userId)
-                .orElseGet(() -> UserVisitCounter.create(userId));
-        counter.increase();
-        try {
-            userVisitCounterRepository.save(counter);
-        } catch (DataIntegrityViolationException e) {
-            // 동시에 같은 유저의 카운터가 먼저 생성된 경우: 실제 카운터를 재조회해 다시 반영한다
-            counter = userVisitCounterRepository.findByUserId(userId).orElseThrow(() -> e);
+        int attempts = 0;
+        while (true) {
+            attempts++;
+            UserVisitCounter counter = userVisitCounterRepository.findByUserId(userId)
+                    .orElseGet(() -> UserVisitCounter.create(userId));
             counter.increase();
-            userVisitCounterRepository.save(counter);
+            try {
+                userVisitCounterRepository.save(counter);
+                return counter.getVisitCount();
+            } catch (DataIntegrityViolationException | OptimisticLockingFailureException e) {
+                // 동시에 같은 유저의 카운터가 먼저 생성/수정된 경우: 재조회 후 다시 반영을 재시도한다
+                if (attempts >= MAX_VISIT_COUNTER_RETRIES) {
+                    throw e;
+                }
+            }
         }
-        return counter.getVisitCount();
     }
 
     private void awardBadge(Long userId, Long badgeId) {
