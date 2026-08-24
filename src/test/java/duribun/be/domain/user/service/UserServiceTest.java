@@ -6,6 +6,7 @@ import duribun.be.domain.user.entity.User;
 import duribun.be.domain.user.entity.UserStatus;
 import duribun.be.domain.user.repository.UserRepository;
 import duribun.be.global.exception.AlreadyWithdrawnUserException;
+import duribun.be.global.exception.UserNotFoundException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -61,6 +62,6 @@ class UserServiceTest {
         when(userRepository.findById(1L)).thenReturn(Optional.empty());
 
         assertThatThrownBy(() -> userService.withdraw(1L))
-                .isInstanceOf(IllegalStateException.class);
+                .isInstanceOf(UserNotFoundException.class);
     }
 }

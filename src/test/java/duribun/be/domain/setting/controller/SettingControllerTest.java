@@ -134,7 +134,7 @@ class SettingControllerTest {
                         .header(HttpHeaders.AUTHORIZATION, bearerToken(userId)))
                 .andExpect(status().isOk());
 
-        assertThat(refreshTokenRepository.findByToken("existing-refresh-token")).isEmpty();
+        assertThat(refreshTokenRepository.findByTokenHash(RefreshToken.hash("existing-refresh-token"))).isEmpty();
     }
 
     private record NotificationBody(boolean notificationEnabled) {

@@ -153,16 +153,16 @@ class ShopControllerTest {
         }
 
         @Test
-        void 이미_구매한_아이템_재구매시_400을_반환한다() throws Exception {
+        void 이미_구매한_아이템_재구매시_409를_반환한다() throws Exception {
             Item item = saveItem("선글라스", 500, ItemCategory.GLASSES);
             pointService.earn(1L, 2000, PointReason.CHARACTER_COLLECT);
             saveUserItem(1L, item.getId());
 
             mockMvc.perform(post("/api/shop/items/" + item.getId() + "/purchase")
                             .header(HttpHeaders.AUTHORIZATION, bearerToken(1L)))
-                    .andExpect(status().isBadRequest())
-                    .andExpect(jsonPath("$.status").value(400))
-                    .andExpect(jsonPath("$.error").value("Bad Request"))
+                    .andExpect(status().isConflict())
+                    .andExpect(jsonPath("$.status").value(409))
+                    .andExpect(jsonPath("$.error").value("Conflict"))
                     .andExpect(jsonPath("$.message").value("이미 구매한 아이템입니다."));
         }
 

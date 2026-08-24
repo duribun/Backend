@@ -40,6 +40,11 @@ public class GlobalExceptionHandler {
         return respond(HttpStatus.CONFLICT, e.getMessage());
     }
 
+    @ExceptionHandler(UserNotFoundException.class)
+    public ResponseEntity<ErrorResponse> handleUserNotFound(UserNotFoundException e) {
+        return respond(HttpStatus.NOT_FOUND, e.getMessage());
+    }
+
     @ExceptionHandler(AttractionNotFoundException.class)
     public ResponseEntity<ErrorResponse> handleAttractionNotFound(AttractionNotFoundException e) {
         return respond(HttpStatus.NOT_FOUND, e.getMessage());
@@ -62,7 +67,7 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(AlreadyPurchasedException.class)
     public ResponseEntity<ErrorResponse> handleAlreadyPurchased(AlreadyPurchasedException e) {
-        return respond(HttpStatus.BAD_REQUEST, e.getMessage());
+        return respond(HttpStatus.CONFLICT, e.getMessage());
     }
 
     @ExceptionHandler(ItemNotOwnedException.class)
