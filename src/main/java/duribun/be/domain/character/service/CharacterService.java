@@ -8,6 +8,7 @@ import duribun.be.domain.character.repository.CharacterRepository;
 import duribun.be.domain.character.repository.UserCharacterRepository;
 import duribun.be.domain.location.event.LocationVerifiedEvent;
 import org.springframework.context.event.EventListener;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -64,6 +65,10 @@ public class CharacterService {
     }
 
     private void grantCharacter(Long userId, Long characterId) {
-        userCharacterRepository.save(UserCharacter.create(userId, characterId, LocalDateTime.now()));
+        try {
+            userCharacterRepository.save(UserCharacter.create(userId, characterId, LocalDateTime.now()));
+        } catch (DataIntegrityViolationException e) {
+            // 동시 최초 지급 경합: 다른 트랜잭션이 이미 동일 캐릭터를 지급했으므로 무시한다
+        }
     }
 }
