@@ -37,6 +37,7 @@ public class LocationVerificationService {
         this.eventPublisher = eventPublisher;
     }
 
+    @Transactional(readOnly = true)
     public List<RegionResponse> getAllRegions() {
         return regionRepository.findAll().stream()
                 .map(RegionResponse::from)
@@ -72,6 +73,7 @@ public class LocationVerificationService {
         return new VerifyLocationResponse(true, isFirstVisit, region.getId(), region.getName(), distance);
     }
 
+    @Transactional(readOnly = true)
     public List<VisitRecordResponse> getVisits(Long userId) {
         List<VisitRecord> visits = visitRecordRepository.findByUserId(userId);
         Map<Long, String> regionNames = regionRepository.findAllById(
