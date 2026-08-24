@@ -12,6 +12,7 @@ import duribun.be.domain.location.repository.VisitRecordRepository;
 import duribun.be.domain.location.util.DistanceCalculator;
 import duribun.be.global.exception.RegionNotFoundException;
 import org.springframework.context.ApplicationEventPublisher;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -56,8 +57,16 @@ public class LocationVerificationService {
 
         boolean isFirstVisit = visitRecordRepository.findByUserIdAndRegionId(userId, region.getId()).isEmpty();
         if (isFirstVisit) {
-            visitRecordRepository.save(VisitRecord.create(userId, region.getId(), LocalDateTime.now()));
-            eventPublisher.publishEvent(new LocationVerifiedEvent(userId, region.getId(), true));
+            try {
+                visitRecordRepository.save(VisitRecord.create(userId, region.getId(), LocalDateTime.now()));
+                eventPublisher.publishEvent(new LocationVerifiedEvent(userId, region.getId(), true));
+            } catch (DataIntegrityViolationException e) {
+                // 동시에 같은 유저·지역의 방문 기록이 먼저 생성된 경우: 재방문으로 취급한다
+                isFirstVisit = visitRecordRepository.findByUserIdAndRegionId(userId, region.getId()).isEmpty();
+                if (isFirstVisit) {
+                    throw e;
+                }
+            }
         }
 
         return new VerifyLocationResponse(true, isFirstVisit, region.getId(), region.getName(), distance);
