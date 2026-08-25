@@ -22,6 +22,12 @@ spring:
       minimum-idle: 6
       connection-timeout: 30000
 
+  # Flyway ---------------------------------------------------------
+  flyway:
+    enabled: true
+    baseline-on-migrate: true # 이미 Flyway 없이 만들어진 기존 dev DB에서도 에러 없이 인식하기 위함
+    baseline-version: 2 # 현재 V2까지가 기존 dev DB의 스키마+시드 데이터와 동일하므로, 그 지점을 기준으로 baseline
+
 # Utils Section ----------------------------------------------
 app:
   # 모바일 앱 대상이라 쿠키 기반 설정 없음. 필요 시(관리자 웹 등) 이 자리에 추가.
