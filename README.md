@@ -15,6 +15,7 @@
 - [도메인 및 API 현황](#도메인-및-api-현황)
 - [기술 스택](#기술-스택)
 - [로컬 실행](#로컬-실행)
+- [DB 마이그레이션 (Flyway)](#db-마이그레이션-flyway)
 - [검증 / 테스트](#검증--테스트)
 - [프로젝트 구조](#프로젝트-구조)
 
@@ -174,6 +175,14 @@ docker-compose up -d
 ```
 
 Swagger UI: `http://localhost:8080/swagger-ui.html`
+
+---
+
+## DB 마이그레이션 (Flyway)
+
+prod 프로필은 `ddl-auto: validate`라 스키마를 자동 생성하지 않습니다. 실제 스키마는 `src/main/resources/db/migration`의 Flyway 마이그레이션(`V1__baseline.sql`, `V2__seed_reference_data.sql`, ...)으로만 갖춰집니다.
+
+dev 프로필은 개발 속도를 위해 여전히 `ddl-auto: update`를 유지하지만, 이 때문에 dev와 prod 스키마가 어긋나지 않도록 **엔티티를 변경하는 PR에는 반드시 대응하는 마이그레이션 파일(`V{n}__description.sql`)을 함께 추가**합니다.
 
 ---
 
