@@ -67,8 +67,8 @@ class ShopServiceTest {
         return item;
     }
 
-    private UserItem userItemWithId(Long id, Long userId, Long itemId) {
-        UserItem ui = UserItem.create(userId, itemId, FIXED_NOW);
+    private UserItem userItemWithId(Long id, Long userId, Long itemId, ItemCategory category) {
+        UserItem ui = UserItem.create(userId, itemId, category, FIXED_NOW);
         TestEntityUtils.setId(ui, id);
         return ui;
     }
@@ -107,7 +107,7 @@ class ShopServiceTest {
         @Test
         void 구매한_아이템의_착용여부를_포함해_반환한다() {
             Item item = itemWithId(1L, ItemCategory.GLASSES);
-            UserItem userItem = userItemWithId(10L, 1L, 1L);
+            UserItem userItem = userItemWithId(10L, 1L, 1L, ItemCategory.GLASSES);
             userItem.equip();
             when(userItemRepository.findByUserId(1L)).thenReturn(List.of(userItem));
             when(itemRepository.findAllById(List.of(1L))).thenReturn(List.of(item));
@@ -125,6 +125,20 @@ class ShopServiceTest {
             when(itemRepository.findAllById(List.of())).thenReturn(List.of());
 
             assertThat(shopService.getMyItems(1L)).isEmpty();
+        }
+
+        @Test
+        void 보유한_아이템이_items_테이블에서_삭제됐으면_해당_항목을_제외하고_반환한다() {
+            Item remainingItem = itemWithId(1L, ItemCategory.GLASSES);
+            UserItem deletedItemUserItem = userItemWithId(10L, 1L, 999L, ItemCategory.BAG);
+            UserItem remainingUserItem = userItemWithId(20L, 1L, 1L, ItemCategory.GLASSES);
+            when(userItemRepository.findByUserId(1L)).thenReturn(List.of(deletedItemUserItem, remainingUserItem));
+            when(itemRepository.findAllById(List.of(999L, 1L))).thenReturn(List.of(remainingItem));
+
+            List<MyItemResponse> result = shopService.getMyItems(1L);
+
+            assertThat(result).hasSize(1);
+            assertThat(result.get(0).id()).isEqualTo(1L);
         }
     }
 
@@ -235,9 +249,9 @@ class ShopServiceTest {
         @Test
         void 미착용_아이템을_착용하면_isEquipped가_true가_된다() {
             Item item = itemWithId(1L, ItemCategory.GLASSES);
-            UserItem userItem = userItemWithId(10L, 1L, 1L);
+            UserItem userItem = userItemWithId(10L, 1L, 1L, ItemCategory.GLASSES);
             when(itemRepository.findById(1L)).thenReturn(Optional.of(item));
-            when(userItemRepository.findByUserIdForUpdate(1L)).thenReturn(List.of(userItem));
+            when(userItemRepository.findByUserIdAndCategoryForUpdate(1L, ItemCategory.GLASSES)).thenReturn(List.of(userItem));
 
             EquipResponse response = shopService.toggleEquip(1L, 1L);
 
@@ -248,10 +262,10 @@ class ShopServiceTest {
         @Test
         void 착용중인_아이템을_다시_누르면_isEquipped가_false가_된다() {
             Item item = itemWithId(1L, ItemCategory.HAT);
-            UserItem userItem = userItemWithId(10L, 1L, 1L);
+            UserItem userItem = userItemWithId(10L, 1L, 1L, ItemCategory.HAT);
             userItem.equip();
             when(itemRepository.findById(1L)).thenReturn(Optional.of(item));
-            when(userItemRepository.findByUserIdForUpdate(1L)).thenReturn(List.of(userItem));
+            when(userItemRepository.findByUserIdAndCategoryForUpdate(1L, ItemCategory.HAT)).thenReturn(List.of(userItem));
 
             EquipResponse response = shopService.toggleEquip(1L, 1L);
 
@@ -262,15 +276,13 @@ class ShopServiceTest {
         @ParameterizedTest(name = "{0} 카테고리 - 같은 카테고리 기존 착용 아이템이 자동으로 해제된다")
         @EnumSource(ItemCategory.class)
         void 같은_카테고리_착용_중인_아이템이_자동으로_해제된다(ItemCategory category) {
-            Item item1 = itemWithId(1L, category);
             Item item2 = itemWithId(2L, category);
-            UserItem userItem1 = userItemWithId(10L, 1L, 1L);
+            UserItem userItem1 = userItemWithId(10L, 1L, 1L, category);
             userItem1.equip();
-            UserItem userItem2 = userItemWithId(20L, 1L, 2L);
+            UserItem userItem2 = userItemWithId(20L, 1L, 2L, category);
 
             when(itemRepository.findById(2L)).thenReturn(Optional.of(item2));
-            when(userItemRepository.findByUserIdForUpdate(1L)).thenReturn(List.of(userItem1, userItem2));
-            when(itemRepository.findAllById(List.of(1L))).thenReturn(List.of(item1));
+            when(userItemRepository.findByUserIdAndCategoryForUpdate(1L, category)).thenReturn(List.of(userItem1, userItem2));
 
             EquipResponse response = shopService.toggleEquip(1L, 2L);
 
@@ -281,15 +293,13 @@ class ShopServiceTest {
 
         @Test
         void 다른_카테고리_착용중인_아이템은_그대로_유지된다() {
-            Item glasses = itemWithId(1L, ItemCategory.GLASSES);
             Item hat = itemWithId(2L, ItemCategory.HAT);
-            UserItem equippedGlasses = userItemWithId(10L, 1L, 1L);
+            UserItem equippedGlasses = userItemWithId(10L, 1L, 1L, ItemCategory.GLASSES);
             equippedGlasses.equip();
-            UserItem newHat = userItemWithId(20L, 1L, 2L);
+            UserItem newHat = userItemWithId(20L, 1L, 2L, ItemCategory.HAT);
 
             when(itemRepository.findById(2L)).thenReturn(Optional.of(hat));
-            when(userItemRepository.findByUserIdForUpdate(1L)).thenReturn(List.of(equippedGlasses, newHat));
-            when(itemRepository.findAllById(List.of(1L))).thenReturn(List.of(glasses));
+            when(userItemRepository.findByUserIdAndCategoryForUpdate(1L, ItemCategory.HAT)).thenReturn(List.of(newHat));
 
             shopService.toggleEquip(1L, 2L);
 
@@ -310,7 +320,7 @@ class ShopServiceTest {
         void 미구매_아이템이면_ItemNotOwnedException을_던진다() {
             Item item = itemWithId(1L, ItemCategory.BAG);
             when(itemRepository.findById(1L)).thenReturn(Optional.of(item));
-            when(userItemRepository.findByUserIdForUpdate(1L)).thenReturn(List.of());
+            when(userItemRepository.findByUserIdAndCategoryForUpdate(1L, ItemCategory.BAG)).thenReturn(List.of());
 
             assertThatThrownBy(() -> shopService.toggleEquip(1L, 1L))
                     .isInstanceOf(ItemNotOwnedException.class)
