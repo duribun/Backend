@@ -50,7 +50,7 @@ class PointControllerTest {
 
     @Test
     void me는_로그인한_유저의_잔액을_반환한다() throws Exception {
-        pointService.earn(1L, 1500, PointReason.CHARACTER_COLLECT);
+        pointService.earn(1L, 1500, PointReason.MASCOT_COLLECT);
 
         mockMvc.perform(get("/api/points/me")
                         .header(HttpHeaders.AUTHORIZATION, bearerToken(1L)))
@@ -60,9 +60,9 @@ class PointControllerTest {
 
     @Test
     void history는_로그인한_유저의_내역만_최신순으로_반환한다() throws Exception {
-        pointService.earn(1L, 100, PointReason.CHARACTER_COLLECT);
+        pointService.earn(1L, 100, PointReason.MASCOT_COLLECT);
         pointService.spend(1L, 50, PointReason.SHOP_PURCHASE);
-        pointService.earn(2L, 999, PointReason.CHARACTER_COLLECT);
+        pointService.earn(2L, 999, PointReason.MASCOT_COLLECT);
 
         mockMvc.perform(get("/api/points/history")
                         .header(HttpHeaders.AUTHORIZATION, bearerToken(1L)))

@@ -133,7 +133,7 @@ class ShopControllerTest {
         @Test
         void 구매_성공시_200과_잔여포인트를_반환한다() throws Exception {
             Item item = saveItem("선글라스", 500, ItemCategory.GLASSES);
-            pointService.earn(1L, 1000, PointReason.CHARACTER_COLLECT);
+            pointService.earn(1L, 1000, PointReason.MASCOT_COLLECT);
 
             mockMvc.perform(post("/api/shop/items/" + item.getId() + "/purchase")
                             .header(HttpHeaders.AUTHORIZATION, bearerToken(1L)))
@@ -155,7 +155,7 @@ class ShopControllerTest {
         @Test
         void 이미_구매한_아이템_재구매시_409를_반환한다() throws Exception {
             Item item = saveItem("선글라스", 500, ItemCategory.GLASSES);
-            pointService.earn(1L, 2000, PointReason.CHARACTER_COLLECT);
+            pointService.earn(1L, 2000, PointReason.MASCOT_COLLECT);
             saveUserItem(1L, item);
 
             mockMvc.perform(post("/api/shop/items/" + item.getId() + "/purchase")

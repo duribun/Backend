@@ -24,7 +24,7 @@ class PointHistoryRepositoryTest {
 
     @Test
     void save하면_createdAt_updatedAt이_자동으로_채워진다() {
-        PointHistory history = PointHistory.create(1L, 100, PointReason.CHARACTER_COLLECT, 100);
+        PointHistory history = PointHistory.create(1L, 100, PointReason.MASCOT_COLLECT, 100);
 
         PointHistory saved = pointHistoryRepository.saveAndFlush(history);
 
@@ -35,7 +35,7 @@ class PointHistoryRepositoryTest {
 
     @Test
     void findByUserId_해당_유저의_내역만_페이징하여_조회한다() {
-        pointHistoryRepository.saveAndFlush(PointHistory.create(1L, 100, PointReason.CHARACTER_COLLECT, 100));
+        pointHistoryRepository.saveAndFlush(PointHistory.create(1L, 100, PointReason.MASCOT_COLLECT, 100));
         pointHistoryRepository.saveAndFlush(PointHistory.create(1L, -40, PointReason.SHOP_PURCHASE, 60));
         pointHistoryRepository.saveAndFlush(PointHistory.create(2L, 50, PointReason.PRODUCT_COLLECT, 50));
 

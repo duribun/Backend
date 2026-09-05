@@ -1,5 +1,6 @@
 package duribun.be.domain.point.service;
 
+import duribun.be.domain.mascot.event.MascotAcquiredEvent;
 import duribun.be.domain.point.dto.PointHistoryResponse;
 import duribun.be.domain.point.entity.PointAccount;
 import duribun.be.domain.point.entity.PointHistory;
@@ -50,7 +51,7 @@ class PointServiceImplTest {
     void earn_계좌가_없으면_생성하고_잔액을_증가시킨다() {
         when(pointAccountRepository.findByUserId(1L)).thenReturn(Optional.empty());
 
-        pointService.earn(1L, 100, PointReason.CHARACTER_COLLECT);
+        pointService.earn(1L, 100, PointReason.MASCOT_COLLECT);
 
         ArgumentCaptor<PointAccount> accountCaptor = ArgumentCaptor.forClass(PointAccount.class);
         verify(pointAccountRepository).save(accountCaptor.capture());
@@ -63,7 +64,7 @@ class PointServiceImplTest {
         account.increaseBalance(50);
         when(pointAccountRepository.findByUserId(1L)).thenReturn(Optional.of(account));
 
-        pointService.earn(1L, 100, PointReason.CHARACTER_COLLECT);
+        pointService.earn(1L, 100, PointReason.MASCOT_COLLECT);
 
         assertThat(account.getBalance()).isEqualTo(150);
     }
@@ -72,13 +73,25 @@ class PointServiceImplTest {
     void earn_호출시_History가_양수_금액으로_기록된다() {
         when(pointAccountRepository.findByUserId(1L)).thenReturn(Optional.empty());
 
-        pointService.earn(1L, 100, PointReason.CHARACTER_COLLECT);
+        pointService.earn(1L, 100, PointReason.MASCOT_COLLECT);
 
         ArgumentCaptor<PointHistory> historyCaptor = ArgumentCaptor.forClass(PointHistory.class);
         verify(pointHistoryRepository).save(historyCaptor.capture());
         assertThat(historyCaptor.getValue().getAmount()).isEqualTo(100);
         assertThat(historyCaptor.getValue().getBalanceAfter()).isEqualTo(100);
-        assertThat(historyCaptor.getValue().getReason()).isEqualTo(PointReason.CHARACTER_COLLECT);
+        assertThat(historyCaptor.getValue().getReason()).isEqualTo(PointReason.MASCOT_COLLECT);
+    }
+
+    @Test
+    void handleMascotAcquired_마스코트_획득_이벤트를_받으면_20포인트를_적립한다() {
+        when(pointAccountRepository.findByUserId(1L)).thenReturn(Optional.empty());
+
+        pointService.handleMascotAcquired(new MascotAcquiredEvent(1L, 10L, 5L));
+
+        ArgumentCaptor<PointHistory> historyCaptor = ArgumentCaptor.forClass(PointHistory.class);
+        verify(pointHistoryRepository).save(historyCaptor.capture());
+        assertThat(historyCaptor.getValue().getAmount()).isEqualTo(20);
+        assertThat(historyCaptor.getValue().getReason()).isEqualTo(PointReason.MASCOT_COLLECT);
     }
 
     @Test
@@ -138,7 +151,7 @@ class PointServiceImplTest {
                 .thenThrow(new DataIntegrityViolationException("duplicate user_id"))
                 .thenAnswer(invocation -> invocation.getArgument(0));
 
-        pointService.earn(1L, 100, PointReason.CHARACTER_COLLECT);
+        pointService.earn(1L, 100, PointReason.MASCOT_COLLECT);
 
         assertThat(racedAccount.getBalance()).isEqualTo(130);
     }
@@ -146,7 +159,7 @@ class PointServiceImplTest {
     @ParameterizedTest
     @ValueSource(ints = {0, -10})
     void earn_금액이_0이하이면_예외를_던지고_아무것도_저장하지_않는다(int amount) {
-        assertThatThrownBy(() -> pointService.earn(1L, amount, PointReason.CHARACTER_COLLECT))
+        assertThatThrownBy(() -> pointService.earn(1L, amount, PointReason.MASCOT_COLLECT))
                 .isInstanceOf(IllegalArgumentException.class);
 
         verifyNoInteractions(pointAccountRepository, pointHistoryRepository);
@@ -179,7 +192,7 @@ class PointServiceImplTest {
 
     @Test
     void getHistory_페이징된_내역을_응답으로_변환한다() {
-        PointHistory history = PointHistory.create(1L, 100, PointReason.CHARACTER_COLLECT, 100);
+        PointHistory history = PointHistory.create(1L, 100, PointReason.MASCOT_COLLECT, 100);
         Pageable pageable = PageRequest.of(0, 10);
         Page<PointHistory> page = new PageImpl<>(List.of(history), pageable, 1);
         when(pointHistoryRepository.findByUserId(1L, pageable)).thenReturn(page);

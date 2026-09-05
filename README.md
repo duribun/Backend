@@ -1,9 +1,9 @@
 # 두리번 (Duribun) 🧭
 
 > **GPS 위치 인증으로 여행을 "플레이"하는 게임형 여행 플랫폼 백엔드.**
-> 방문 인증을 시계열로 누적하고, 그 기록이 다시 **캐릭터 지급·배지·포인트**로 되먹임되는 Spring Boot 서버입니다.
+> 방문 인증을 시계열로 누적하고, 그 기록이 다시 **마스코트 지급·배지·포인트**로 되먹임되는 Spring Boot 서버입니다.
 
-한국 관광의 서울·부산 편중 현상을 완화하기 위해, 사용자가 시군구를 실제로 방문·인증하면 그 지역 캐릭터를 얻고 도감을 채워가는 위치 기반 게임형 서비스입니다. "왜 그냥 여행 앱이 아니라 게임인가?"에 대한 답은 **위치 인증이라는 단일 행위가 캐릭터 획득·배지·포인트라는 여러 보상으로 자동 확장되는 이벤트 기반 구조**입니다.
+한국 관광의 서울·부산 편중 현상을 완화하기 위해, 사용자가 시군구를 실제로 방문·인증하면 그 지역 마스코트를 얻고 도감을 채워가는 위치 기반 게임형 서비스입니다. "왜 그냥 여행 앱이 아니라 게임인가?"에 대한 답은 **위치 인증이라는 단일 행위가 마스코트 획득·배지·포인트라는 여러 보상으로 자동 확장되는 이벤트 기반 구조**입니다.
 
 ---
 
@@ -27,8 +27,8 @@
 
 - **로그인하고** — Google/Kakao/Naver 소셜 로그인. 앱이 각 플랫폼 SDK로 받은 토큰을 서버로 보내면, 서버가 이를 검증하고 자체 JWT를 발급
 - **인증하고** — 특정 지역 반경 안에서 GPS 좌표를 보내면, 서버가 Haversine 거리 계산으로 방문 여부를 판정
-- **보상받는다** — 인증 성공은 **하나의 이벤트**로 발행되고, 이를 구독하는 여러 도메인이 각자 반응해 캐릭터를 지급하고, 방문 지역 수에 따라 배지를 채점
-- **모으고 꾸민다** — 도감(캐릭터), 포인트로 아이템을 사서 캐릭터 커스터마이징, 여행 기록(사진·감상) 작성
+- **보상받는다** — 인증 성공은 **하나의 이벤트**로 발행되고, 이를 구독하는 여러 도메인이 각자 반응해 마스코트를 지급하고, 마스코트 획득 수에 따라 배지를 채점
+- **모으고 꾸민다** — 도감(마스코트), 포인트로 아이템을 사서 마스코트 커스터마이징, 여행 기록(사진·감상) 작성
 - **주변을 탐색한다** — 한국관광공사 TourAPI를 연동해 방문 지역/현재 위치 주변의 실제 관광지 정보를 조회
 
 ---
@@ -36,7 +36,7 @@
 ## 왜 이렇게 설계했나 (핵심 의사결정)
 
 ### 1. 위치 인증의 결과는 "호출"이 아니라 "이벤트"로 퍼진다
-위치 인증에 성공하면 캐릭터 지급(Character), 배지 판정(Badge)이 뒤따라야 합니다. `location` 도메인이 이 둘을 직접 호출하는 대신, `LocationVerifiedEvent(userId, regionId, isFirstVisit)`를 `ApplicationEventPublisher`로 발행하고 각 도메인이 구독하는 구조를 택했습니다. **왜?**
+위치 인증에 성공하면 마스코트 지급(Mascot)이 뒤따라야 하고, 마스코트를 실제로 지급받은 시점에 배지 판정(Badge)과 포인트 적립(Point)이 다시 뒤따라야 합니다. `location` 도메인이 이들을 직접 호출하는 대신, `LocationVerifiedEvent(userId, regionId, isFirstVisit)`를 `ApplicationEventPublisher`로 발행하고 `mascot`이 구독해 지급에 성공한 경우에만 `MascotAcquiredEvent(userId, mascotId, regionId)`를 다시 발행하는 2단 이벤트 체인으로 구성했습니다. **왜?**
 - 두 명이 나눠 개발하는 프로젝트에서, `location`을 담당하지 않는 사람이 `location` 패키지 내부를 몰라도 이벤트 클래스 하나만 보고 리스너를 만들 수 있어야 병렬 개발이 막히지 않습니다.
 - 재방문(이미 인증된 지역)은 이벤트를 아예 발행하지 않아, "중복 지급 방지"를 이벤트 발행 시점에서 원천 차단합니다 — 구독하는 쪽마다 중복 체크 로직을 반복할 필요가 없습니다.
 
@@ -74,7 +74,7 @@ public interface SocialAuthClient {
                                     │  └────────┘ └────┬─────┘ └─────┬──────┘  │
                                     │                   │ event        │ REST   │
                                     │              ┌────▼─────┐  ┌────▼─────┐  │
-                                    │              │ character │  │ TourAPI  │──┼──▶ 한국관광공사
+                                    │              │  mascot   │  │ TourAPI  │──┼──▶ 한국관광공사
                                     │              │  badge    │  └──────────┘  │
                                     │              └───────────┘                │
                                     │  ┌────────┐ ┌──────────┐ ┌────────────┐  │
@@ -88,7 +88,7 @@ public interface SocialAuthClient {
                                                  └──────────────┘
 ```
 
-- `location`은 `character`/`badge`를 알지 못합니다. `LocationVerifiedEvent`만 발행하고, 구독은 받는 쪽의 책임입니다.
+- `location`은 `mascot`/`badge`/`point`를 알지 못합니다. `LocationVerifiedEvent`만 발행하고, 구독은 받는 쪽의 책임입니다.
 - `map`은 `location`의 `Region`을 읽기 전용으로만 참조합니다.
 - 모든 도메인 엔티티는 `common/entity`의 `BaseTimeEntity`(또는 생성자/수정자까지 필요하면 `BaseEntity`)를 상속해 `createdAt`/`updatedAt`을 자동 관리합니다.
 
@@ -105,12 +105,13 @@ public interface SocialAuthClient {
 
 ### 2) 이벤트 전파
 - `LocationVerifiedEvent(isFirstVisit=true)`만 의미 있는 이벤트로 취급, 재방문은 구독자들에게 아예 전달되지 않음
-- `badge`는 이 이벤트만으로 자체 카운터(`UserVisitCounter`)를 올리고, 기준치를 넘는 미획득 배지를 한 번에 지급
-- `character`는 같은 이벤트로 해당 지역 캐릭터를 지급 (location 내부 테이블을 조회하지 않음)
+- `mascot`은 이 이벤트로 해당 지역 마스코트를 지급 (location 내부 테이블을 조회하지 않음). 지역은 방문됐지만 매핑된 마스코트가 아직 없는 경우 방문만 인정되고 지급은 일어나지 않음
+- 마스코트를 실제로 지급한 시점에만 `MascotAcquiredEvent`를 새로 발행 — "방문"과 "마스코트 획득"은 다른 사건이라는 원칙
+- `badge`는 `MascotAcquiredEvent`로 자체 카운터(`UserVisitCounter`)를 올리고, 기준치를 넘는 미획득 배지를 한 번에 지급. 방문 수가 아니라 정확히 마스코트 획득 수를 세야 하기 때문
+- `point`도 같은 `MascotAcquiredEvent`를 구독해 +20 포인트를 적립
 
 ### 3) 보상 확인
-- `GET /api/badges/me`, `GET /api/characters/me`로 누적된 결과를 즉시 확인 가능
-- 포인트는 아직 이 루프에 자동 연결되어 있지 않습니다 — 어떤 행위(관광지 방문? 특산물 수집?)가 포인트를 트리거할지는 별도 도메인이 정해진 뒤 연결할 예정이며, 그 전까지 `PointService` 인터페이스만 노출해 `shop` 등 다른 도메인이 먼저 개발을 진행할 수 있게 했습니다.
+- `GET /api/badges/me`, `GET /api/mascots/me`, `GET /api/points/me`로 누적된 결과를 즉시 확인 가능
 
 ---
 
@@ -121,12 +122,12 @@ public interface SocialAuthClient {
 | `auth` | ✅ | Google/Kakao/Naver 소셜 로그인(모바일 SDK 토큰 검증), JWT 발급/재발급 |
 | `user` | ✅ | 유저 정보, 닉네임 |
 | `location` | ✅ | GPS 기반 위치 인증, `LocationVerifiedEvent` 발행 |
-| `point` | ✅ | 포인트 적립/차감 (공통 모듈, 트리거는 미연결) |
-| `badge` | ✅ | 방문 지역 수 기반 배지 자동 지급 (`location` 이벤트 구독) |
+| `point` | ✅ | 포인트 적립/차감 (공통 모듈, `MascotAcquiredEvent` 구독으로 +20 적립) |
+| `badge` | ✅ | 마스코트 획득 수 기반 배지 자동 지급 (`MascotAcquiredEvent` 구독) |
 | `map` | ✅ | 한국관광공사 TourAPI 연동, 지역별/위치기반 관광지 조회·검색 |
 | `setting` | ✅ | 알림 설정, 회원 탈퇴 |
-| `shop` | 🔄 진행 중 | 포인트 기반 아이템 구매, 캐릭터 커스터마이징 |
-| `character` | ⏳ 예정 | 지역 캐릭터 도감 (`location` 이벤트 구독) |
+| `shop` | 🔄 진행 중 | 포인트 기반 아이템 구매, 마스코트 커스터마이징 |
+| `mascot` | ✅ | 지역 마스코트 도감 (`location` 이벤트 구독, `MascotAcquiredEvent` 발행) |
 | `record` | ⏳ 예정 | 여행 기록 (사진·감상) |
 
 주요 엔드포인트:
@@ -208,11 +209,11 @@ duribun.be/
     ├── auth/          # 소셜 로그인, JWT
     ├── user/          # 유저 정보
     ├── location/      # 위치 인증, LocationVerifiedEvent 발행
-    ├── point/         # 포인트 (공통 모듈)
-    ├── badge/         # 배지 (Location 이벤트 구독)
+    ├── point/         # 포인트 (공통 모듈, MascotAcquiredEvent 구독)
+    ├── badge/         # 배지 (MascotAcquiredEvent 구독)
     ├── map/            # TourAPI 연동, 지역코드 매핑
     ├── setting/        # 설정
-    ├── character/      # 캐릭터 도감 (Location 이벤트 구독)
+    ├── mascot/         # 마스코트 도감 (Location 이벤트 구독, MascotAcquiredEvent 발행)
     ├── shop/            # 상점
     └── record/          # 여행 기록
 ```

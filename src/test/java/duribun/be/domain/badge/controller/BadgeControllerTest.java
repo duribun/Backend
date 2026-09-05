@@ -5,6 +5,8 @@ import duribun.be.domain.badge.repository.BadgeRepository;
 import duribun.be.domain.location.dto.VerifyLocationRequest;
 import duribun.be.domain.location.entity.Region;
 import duribun.be.domain.location.repository.RegionRepository;
+import duribun.be.domain.mascot.entity.Mascot;
+import duribun.be.domain.mascot.repository.MascotRepository;
 import duribun.be.domain.user.entity.Role;
 import duribun.be.global.security.jwt.JwtTokenProvider;
 import org.junit.jupiter.api.Test;
@@ -42,6 +44,9 @@ class BadgeControllerTest {
     private RegionRepository regionRepository;
 
     @Autowired
+    private MascotRepository mascotRepository;
+
+    @Autowired
     private JwtTokenProvider jwtTokenProvider;
 
     private String bearerToken(Long userId) {
@@ -73,8 +78,9 @@ class BadgeControllerTest {
     }
 
     @Test
-    void 방문_인증으로_기준을_충족하면_배지가_즉시_acquired_true로_조회된다() throws Exception {
+    void 방문_인증으로_마스코트를_획득하면_배지가_즉시_acquired_true로_조회된다() throws Exception {
         Region region = regionRepository.saveAndFlush(Region.create("51150", "강릉시", 37.7519, 128.8761, 1000));
+        mascotRepository.saveAndFlush(Mascot.create(region.getId(), "강릉이", "설명", null));
         badgeRepository.saveAndFlush(Badge.create("BEGINNER", "여행 초보자", "설명", 1, null));
 
         mockMvc.perform(post("/api/locations/verify")
@@ -98,8 +104,27 @@ class BadgeControllerTest {
     }
 
     @Test
+    void 마스코트가_매핑되지_않은_지역을_방문하면_배지는_지급되지_않는다() throws Exception {
+        Region region = regionRepository.saveAndFlush(Region.create("51150", "강릉시", 37.7519, 128.8761, 1000));
+        badgeRepository.saveAndFlush(Badge.create("BEGINNER", "여행 초보자", "설명", 1, null));
+
+        mockMvc.perform(post("/api/locations/verify")
+                        .header(HttpHeaders.AUTHORIZATION, bearerToken(1L))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(
+                                new VerifyLocationRequest(region.getId(), 37.7519, 128.8761))))
+                .andExpect(status().isOk());
+
+        mockMvc.perform(get("/api/badges/me")
+                        .header(HttpHeaders.AUTHORIZATION, bearerToken(1L)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.length()").value(0));
+    }
+
+    @Test
     void me_조회는_보유한_배지만_반환하고_다른_유저의_배지는_섞이지_않는다() throws Exception {
         Region region = regionRepository.saveAndFlush(Region.create("51150", "강릉시", 37.7519, 128.8761, 1000));
+        mascotRepository.saveAndFlush(Mascot.create(region.getId(), "강릉이", "설명", null));
         badgeRepository.saveAndFlush(Badge.create("BEGINNER", "여행 초보자", "설명", 1, null));
 
         mockMvc.perform(post("/api/locations/verify")

@@ -1,7 +1,7 @@
-package duribun.be.domain.character.controller;
+package duribun.be.domain.mascot.controller;
 
-import duribun.be.domain.character.entity.Character;
-import duribun.be.domain.character.repository.CharacterRepository;
+import duribun.be.domain.mascot.entity.Mascot;
+import duribun.be.domain.mascot.repository.MascotRepository;
 import duribun.be.domain.location.dto.VerifyLocationRequest;
 import duribun.be.domain.location.entity.Region;
 import duribun.be.domain.location.repository.RegionRepository;
@@ -27,7 +27,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @AutoConfigureMockMvc
 @ActiveProfiles("test")
 @Transactional
-class CharacterControllerTest {
+class MascotControllerTest {
 
     @Autowired
     private MockMvc mockMvc;
@@ -36,7 +36,7 @@ class CharacterControllerTest {
     private ObjectMapper objectMapper;
 
     @Autowired
-    private CharacterRepository characterRepository;
+    private MascotRepository mascotRepository;
 
     @Autowired
     private RegionRepository regionRepository;
@@ -49,23 +49,23 @@ class CharacterControllerTest {
     }
 
     @Test
-    void characters_조회는_인증되지_않으면_401을_반환한다() throws Exception {
-        mockMvc.perform(get("/api/characters"))
+    void mascots_조회는_인증되지_않으면_401을_반환한다() throws Exception {
+        mockMvc.perform(get("/api/mascots"))
                 .andExpect(status().isUnauthorized());
     }
 
     @Test
     void me_조회는_인증되지_않으면_401을_반환한다() throws Exception {
-        mockMvc.perform(get("/api/characters/me"))
+        mockMvc.perform(get("/api/mascots/me"))
                 .andExpect(status().isUnauthorized());
     }
 
     @Test
-    void characters_조회는_아직_획득하지_않은_캐릭터를_acquired_false로_반환한다() throws Exception {
+    void mascots_조회는_아직_획득하지_않은_마스코트를_acquired_false로_반환한다() throws Exception {
         Region region = regionRepository.saveAndFlush(Region.create("51150", "강릉시", 37.7519, 128.8761, 1000));
-        characterRepository.saveAndFlush(Character.create(region.getId(), "강릉이", "설명", null));
+        mascotRepository.saveAndFlush(Mascot.create(region.getId(), "강릉이", "설명", null));
 
-        mockMvc.perform(get("/api/characters")
+        mockMvc.perform(get("/api/mascots")
                         .header(HttpHeaders.AUTHORIZATION, bearerToken(1L)))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$[0].name").value("강릉이"))
@@ -74,9 +74,9 @@ class CharacterControllerTest {
     }
 
     @Test
-    void 방문_인증으로_지역을_최초방문하면_캐릭터가_즉시_acquired_true로_조회된다() throws Exception {
+    void 방문_인증으로_지역을_최초방문하면_마스코트가_즉시_acquired_true로_조회된다() throws Exception {
         Region region = regionRepository.saveAndFlush(Region.create("51150", "강릉시", 37.7519, 128.8761, 1000));
-        characterRepository.saveAndFlush(Character.create(region.getId(), "강릉이", "설명", null));
+        mascotRepository.saveAndFlush(Mascot.create(region.getId(), "강릉이", "설명", null));
 
         mockMvc.perform(post("/api/locations/verify")
                         .header(HttpHeaders.AUTHORIZATION, bearerToken(1L))
@@ -85,13 +85,13 @@ class CharacterControllerTest {
                                 new VerifyLocationRequest(region.getId(), 37.7519, 128.8761))))
                 .andExpect(status().isOk());
 
-        mockMvc.perform(get("/api/characters")
+        mockMvc.perform(get("/api/mascots")
                         .header(HttpHeaders.AUTHORIZATION, bearerToken(1L)))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$[0].name").value("강릉이"))
                 .andExpect(jsonPath("$[0].acquired").value(true));
 
-        mockMvc.perform(get("/api/characters/me")
+        mockMvc.perform(get("/api/mascots/me")
                         .header(HttpHeaders.AUTHORIZATION, bearerToken(1L)))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.length()").value(1))
@@ -99,9 +99,9 @@ class CharacterControllerTest {
     }
 
     @Test
-    void me_조회는_보유한_캐릭터만_반환하고_다른_유저와_섞이지_않는다() throws Exception {
+    void 방문_인증으로_마스코트를_획득하면_20포인트가_적립된다() throws Exception {
         Region region = regionRepository.saveAndFlush(Region.create("51150", "강릉시", 37.7519, 128.8761, 1000));
-        characterRepository.saveAndFlush(Character.create(region.getId(), "강릉이", "설명", null));
+        mascotRepository.saveAndFlush(Mascot.create(region.getId(), "강릉이", "설명", null));
 
         mockMvc.perform(post("/api/locations/verify")
                         .header(HttpHeaders.AUTHORIZATION, bearerToken(1L))
@@ -110,7 +110,25 @@ class CharacterControllerTest {
                                 new VerifyLocationRequest(region.getId(), 37.7519, 128.8761))))
                 .andExpect(status().isOk());
 
-        mockMvc.perform(get("/api/characters/me")
+        mockMvc.perform(get("/api/points/me")
+                        .header(HttpHeaders.AUTHORIZATION, bearerToken(1L)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.balance").value(20));
+    }
+
+    @Test
+    void me_조회는_보유한_마스코트만_반환하고_다른_유저와_섞이지_않는다() throws Exception {
+        Region region = regionRepository.saveAndFlush(Region.create("51150", "강릉시", 37.7519, 128.8761, 1000));
+        mascotRepository.saveAndFlush(Mascot.create(region.getId(), "강릉이", "설명", null));
+
+        mockMvc.perform(post("/api/locations/verify")
+                        .header(HttpHeaders.AUTHORIZATION, bearerToken(1L))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(
+                                new VerifyLocationRequest(region.getId(), 37.7519, 128.8761))))
+                .andExpect(status().isOk());
+
+        mockMvc.perform(get("/api/mascots/me")
                         .header(HttpHeaders.AUTHORIZATION, bearerToken(2L)))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.length()").value(0));
