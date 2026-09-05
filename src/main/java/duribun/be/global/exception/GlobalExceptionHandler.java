@@ -45,6 +45,16 @@ public class GlobalExceptionHandler {
         return respond(HttpStatus.NOT_FOUND, e.getMessage());
     }
 
+    @ExceptionHandler(InvalidNicknameException.class)
+    public ResponseEntity<ErrorResponse> handleInvalidNickname(InvalidNicknameException e) {
+        return respond(HttpStatus.BAD_REQUEST, e.getMessage());
+    }
+
+    @ExceptionHandler(DuplicateNicknameException.class)
+    public ResponseEntity<ErrorResponse> handleDuplicateNickname(DuplicateNicknameException e) {
+        return respond(HttpStatus.CONFLICT, e.getMessage());
+    }
+
     @ExceptionHandler(AttractionNotFoundException.class)
     public ResponseEntity<ErrorResponse> handleAttractionNotFound(AttractionNotFoundException e) {
         return respond(HttpStatus.NOT_FOUND, e.getMessage());

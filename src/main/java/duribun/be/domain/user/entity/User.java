@@ -15,6 +15,7 @@ import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 
 @Getter
@@ -22,6 +23,8 @@ import java.time.LocalDateTime;
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @Table(name = "users", uniqueConstraints = @UniqueConstraint(columnNames = {"provider", "provider_id"}))
 public class User extends BaseTimeEntity {
+
+    public static final String NICKNAME_PATTERN = "^[a-zA-Z0-9가-힣]{2,10}$";
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -32,6 +35,13 @@ public class User extends BaseTimeEntity {
 
     @Column
     private String nickname;
+
+    @Column(name = "birth_date")
+    private LocalDate birthDate;
+
+    @Enumerated(EnumType.STRING)
+    @Column
+    private Gender gender;
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
@@ -79,5 +89,11 @@ public class User extends BaseTimeEntity {
 
     public boolean isWithdrawn() {
         return this.status == UserStatus.WITHDRAWN;
+    }
+
+    public void updateProfile(String nickname, LocalDate birthDate, Gender gender) {
+        this.nickname = nickname;
+        this.birthDate = birthDate;
+        this.gender = gender;
     }
 }
