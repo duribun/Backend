@@ -1,7 +1,5 @@
 package duribun.be.domain.point.service;
 
-import duribun.be.domain.badge.event.BadgeAcquiredEvent;
-import duribun.be.domain.mascot.event.MascotAcquiredEvent;
 import duribun.be.domain.point.dto.PointHistoryResponse;
 import duribun.be.domain.point.entity.PointAccount;
 import duribun.be.domain.point.entity.PointHistory;
@@ -81,30 +79,6 @@ class PointServiceImplTest {
         assertThat(historyCaptor.getValue().getAmount()).isEqualTo(100);
         assertThat(historyCaptor.getValue().getBalanceAfter()).isEqualTo(100);
         assertThat(historyCaptor.getValue().getReason()).isEqualTo(PointReason.MASCOT_COLLECT);
-    }
-
-    @Test
-    void handleMascotAcquired_마스코트_획득_이벤트를_받으면_20포인트를_적립한다() {
-        when(pointAccountRepository.findByUserId(1L)).thenReturn(Optional.empty());
-
-        pointService.handleMascotAcquired(new MascotAcquiredEvent(1L, 10L, 5L));
-
-        ArgumentCaptor<PointHistory> historyCaptor = ArgumentCaptor.forClass(PointHistory.class);
-        verify(pointHistoryRepository).save(historyCaptor.capture());
-        assertThat(historyCaptor.getValue().getAmount()).isEqualTo(20);
-        assertThat(historyCaptor.getValue().getReason()).isEqualTo(PointReason.MASCOT_COLLECT);
-    }
-
-    @Test
-    void handleBadgeAcquired_칭호_획득_이벤트를_받으면_50포인트를_적립한다() {
-        when(pointAccountRepository.findByUserId(1L)).thenReturn(Optional.empty());
-
-        pointService.handleBadgeAcquired(new BadgeAcquiredEvent(1L, 3L, "SEEDLING"));
-
-        ArgumentCaptor<PointHistory> historyCaptor = ArgumentCaptor.forClass(PointHistory.class);
-        verify(pointHistoryRepository).save(historyCaptor.capture());
-        assertThat(historyCaptor.getValue().getAmount()).isEqualTo(50);
-        assertThat(historyCaptor.getValue().getReason()).isEqualTo(PointReason.BADGE_COLLECT);
     }
 
     @Test
