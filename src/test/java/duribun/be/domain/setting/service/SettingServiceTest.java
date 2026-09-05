@@ -1,10 +1,16 @@
 package duribun.be.domain.setting.service;
 
+import duribun.be.domain.auth.dto.SocialUserInfo;
 import duribun.be.domain.auth.service.AuthService;
+import duribun.be.domain.setting.dto.ProfileUpdateRequest;
+import duribun.be.domain.setting.dto.ProfileUpdateResponse;
 import duribun.be.domain.setting.dto.UserSettingResponse;
 import duribun.be.domain.setting.entity.UserSetting;
 import duribun.be.domain.setting.repository.UserSettingRepository;
 import duribun.be.domain.setting.dto.WithdrawResponse;
+import duribun.be.domain.user.entity.Gender;
+import duribun.be.domain.user.entity.SocialProvider;
+import duribun.be.domain.user.entity.User;
 import duribun.be.domain.user.service.UserService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -14,6 +20,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.dao.DataIntegrityViolationException;
 
+import java.time.LocalDate;
 import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -96,5 +103,28 @@ class SettingServiceTest {
         inOrder.verify(userService).withdraw(1L);
         inOrder.verify(authService).revokeAllTokens(1L);
         assertThat(response.status()).isEqualTo("WITHDRAWN");
+    }
+
+    @Test
+    void checkNicknameAvailability_UserService에_위임한다() {
+        when(userService.isNicknameAvailable(1L, "여행자")).thenReturn(true);
+
+        boolean available = settingService.checkNicknameAvailability(1L, "여행자");
+
+        assertThat(available).isTrue();
+    }
+
+    @Test
+    void updateProfile_UserService가_갱신한_User로_응답을_만든다() {
+        User user = User.create(new SocialUserInfo("pid-1", "a@a.com", "old"), SocialProvider.GOOGLE);
+        user.updateProfile("새닉네임", LocalDate.of(2000, 1, 1), Gender.FEMALE);
+        when(userService.updateProfile(1L, "새닉네임", LocalDate.of(2000, 1, 1), Gender.FEMALE)).thenReturn(user);
+
+        ProfileUpdateResponse response = settingService.updateProfile(1L,
+                new ProfileUpdateRequest("새닉네임", LocalDate.of(2000, 1, 1), Gender.FEMALE));
+
+        assertThat(response.nickname()).isEqualTo("새닉네임");
+        assertThat(response.birthDate()).isEqualTo(LocalDate.of(2000, 1, 1));
+        assertThat(response.gender()).isEqualTo(Gender.FEMALE);
     }
 }
