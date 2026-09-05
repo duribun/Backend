@@ -16,8 +16,8 @@ import lombok.NoArgsConstructor;
 @Getter
 @Entity
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
-@Table(name = "user_visit_counters", uniqueConstraints = @UniqueConstraint(columnNames = "user_id"))
-public class UserVisitCounter extends BaseTimeEntity {
+@Table(name = "user_mascot_counters", uniqueConstraints = @UniqueConstraint(columnNames = "user_id"))
+public class UserMascotCounter extends BaseTimeEntity {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -26,22 +26,22 @@ public class UserVisitCounter extends BaseTimeEntity {
     @Column(name = "user_id", nullable = false)
     private Long userId;
 
-    @Column(name = "visit_count", nullable = false)
-    private Integer visitCount;
+    @Column(name = "mascot_count", nullable = false)
+    private Integer mascotCount;
 
     @Version
     private Long version;
 
-    private UserVisitCounter(Long userId) {
+    private UserMascotCounter(Long userId) {
         this.userId = userId;
-        this.visitCount = 0;
+        this.mascotCount = 0;
     }
 
-    public static UserVisitCounter create(Long userId) {
-        return new UserVisitCounter(userId);
+    public static UserMascotCounter create(Long userId) {
+        return new UserMascotCounter(userId);
     }
 
     public void increase() {
-        this.visitCount += 1;
+        this.mascotCount += 1;
     }
 }

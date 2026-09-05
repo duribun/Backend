@@ -7,5 +7,5 @@ import java.util.List;
 
 public interface BadgeRepository extends JpaRepository<Badge, Long> {
 
-    List<Badge> findByRequiredVisitCountLessThanEqual(Integer visitCount);
+    List<Badge> findByRequiredMascotCountLessThanEqual(Integer mascotCount);
 }
