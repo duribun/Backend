@@ -107,8 +107,10 @@ public interface SocialAuthClient {
 - `LocationVerifiedEvent(isFirstVisit=true)`만 의미 있는 이벤트로 취급, 재방문은 구독자들에게 아예 전달되지 않음
 - `mascot`은 이 이벤트로 해당 지역 마스코트를 지급 (location 내부 테이블을 조회하지 않음). 지역은 방문됐지만 매핑된 마스코트가 아직 없는 경우 방문만 인정되고 지급은 일어나지 않음
 - 마스코트를 실제로 지급한 시점에만 `MascotAcquiredEvent`를 새로 발행 — "방문"과 "마스코트 획득"은 다른 사건이라는 원칙
-- `badge`는 `MascotAcquiredEvent`로 자체 카운터(`UserVisitCounter`)를 올리고, 기준치를 넘는 미획득 배지를 한 번에 지급. 방문 수가 아니라 정확히 마스코트 획득 수를 세야 하기 때문
+- `badge`는 `MascotAcquiredEvent`로 자체 카운터(`UserMascotCounter`)를 올리고, 기준치(`requiredMascotCount`)를 넘는 미획득 칭호를 한 번에 지급. 방문 수가 아니라 정확히 마스코트 획득 수를 세야 하기 때문
 - `point`도 같은 `MascotAcquiredEvent`를 구독해 +20 포인트를 적립
+- 칭호를 실제로 지급한 시점에만 `badge`가 `BadgeAcquiredEvent`를 새로 발행 — 한 번의 마스코트 획득으로 여러 등급을 동시에 넘으면 등급마다 각각 발행
+- `point`가 `BadgeAcquiredEvent`도 구독해 +50 포인트를 추가 적립
 
 ### 3) 보상 확인
 - `GET /api/badges/me`, `GET /api/mascots/me`, `GET /api/points/me`로 누적된 결과를 즉시 확인 가능
@@ -122,8 +124,8 @@ public interface SocialAuthClient {
 | `auth` | ✅ | Google/Kakao/Naver 소셜 로그인(모바일 SDK 토큰 검증), JWT 발급/재발급 |
 | `user` | ✅ | 유저 정보, 닉네임 |
 | `location` | ✅ | GPS 기반 위치 인증, `LocationVerifiedEvent` 발행 |
-| `point` | ✅ | 포인트 적립/차감 (공통 모듈, `MascotAcquiredEvent` 구독으로 +20 적립) |
-| `badge` | ✅ | 마스코트 획득 수 기반 배지 자동 지급 (`MascotAcquiredEvent` 구독) |
+| `point` | ✅ | 포인트 적립/차감 (공통 모듈, `MascotAcquiredEvent`로 +20 / `BadgeAcquiredEvent`로 +50 적립) |
+| `badge` | ✅ | 마스코트 획득 수 기반 칭호 자동 지급 (`MascotAcquiredEvent` 구독, `BadgeAcquiredEvent` 발행) |
 | `map` | ✅ | 한국관광공사 TourAPI 연동, 지역별/위치기반 관광지 조회·검색 |
 | `setting` | ✅ | 알림 설정, 회원 탈퇴 |
 | `shop` | 🔄 진행 중 | 포인트 기반 아이템 구매, 마스코트 커스터마이징 |
@@ -210,7 +212,7 @@ duribun.be/
     ├── user/          # 유저 정보
     ├── location/      # 위치 인증, LocationVerifiedEvent 발행
     ├── point/         # 포인트 (공통 모듈, MascotAcquiredEvent 구독)
-    ├── badge/         # 배지 (MascotAcquiredEvent 구독)
+    ├── badge/         # 칭호 (MascotAcquiredEvent 구독, BadgeAcquiredEvent 발행)
     ├── map/            # TourAPI 연동, 지역코드 매핑
     ├── setting/        # 설정
     ├── mascot/         # 마스코트 도감 (Location 이벤트 구독, MascotAcquiredEvent 발행)
