@@ -9,11 +9,11 @@ class PointHistoryTest {
 
     @Test
     void create_전달받은_필드로_내역을_생성한다() {
-        PointHistory history = PointHistory.create(1L, 100, PointReason.CHARACTER_COLLECT, 100);
+        PointHistory history = PointHistory.create(1L, 100, PointReason.MASCOT_COLLECT, 100);
 
         assertThat(history.getUserId()).isEqualTo(1L);
         assertThat(history.getAmount()).isEqualTo(100);
-        assertThat(history.getReason()).isEqualTo(PointReason.CHARACTER_COLLECT);
+        assertThat(history.getReason()).isEqualTo(PointReason.MASCOT_COLLECT);
         assertThat(history.getBalanceAfter()).isEqualTo(100);
     }
 
