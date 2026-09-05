@@ -1,4 +1,4 @@
-package duribun.be.domain.character.entity;
+package duribun.be.domain.mascot.entity;
 
 import duribun.be.common.entity.BaseTimeEntity;
 import jakarta.persistence.Column;
@@ -15,8 +15,8 @@ import lombok.NoArgsConstructor;
 @Getter
 @Entity
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
-@Table(name = "characters", uniqueConstraints = @UniqueConstraint(columnNames = "region_id"))
-public class Character extends BaseTimeEntity {
+@Table(name = "mascots", uniqueConstraints = @UniqueConstraint(columnNames = "region_id"))
+public class Mascot extends BaseTimeEntity {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -33,14 +33,14 @@ public class Character extends BaseTimeEntity {
     @Column(name = "image_url")
     private String imageUrl;
 
-    private Character(Long regionId, String name, String description, String imageUrl) {
+    private Mascot(Long regionId, String name, String description, String imageUrl) {
         this.regionId = regionId;
         this.name = name;
         this.description = description;
         this.imageUrl = imageUrl;
     }
 
-    public static Character create(Long regionId, String name, String description, String imageUrl) {
-        return new Character(regionId, name, description, imageUrl);
+    public static Mascot create(Long regionId, String name, String description, String imageUrl) {
+        return new Mascot(regionId, name, description, imageUrl);
     }
 }
