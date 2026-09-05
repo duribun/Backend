@@ -1,5 +1,6 @@
 package duribun.be.domain.point.service;
 
+import duribun.be.domain.badge.event.BadgeAcquiredEvent;
 import duribun.be.domain.mascot.event.MascotAcquiredEvent;
 import duribun.be.domain.point.dto.PointHistoryResponse;
 import duribun.be.domain.point.entity.PointAccount;
@@ -19,6 +20,7 @@ import org.springframework.transaction.annotation.Transactional;
 public class PointServiceImpl implements PointService {
 
     private static final int MASCOT_ACQUIRED_REWARD = 20;
+    private static final int BADGE_ACQUIRED_REWARD = 50;
 
     private final PointAccountRepository pointAccountRepository;
     private final PointHistoryRepository pointHistoryRepository;
@@ -32,6 +34,11 @@ public class PointServiceImpl implements PointService {
     @EventListener
     public void handleMascotAcquired(MascotAcquiredEvent event) {
         earn(event.userId(), MASCOT_ACQUIRED_REWARD, PointReason.MASCOT_COLLECT);
+    }
+
+    @EventListener
+    public void handleBadgeAcquired(BadgeAcquiredEvent event) {
+        earn(event.userId(), BADGE_ACQUIRED_REWARD, PointReason.BADGE_COLLECT);
     }
 
     @Override
