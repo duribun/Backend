@@ -9,7 +9,7 @@ public record BadgeResponse(
         String code,
         String name,
         String description,
-        Integer requiredVisitCount,
+        Integer requiredMascotCount,
         String iconUrl,
         boolean acquired,
         LocalDateTime acquiredAt
@@ -20,7 +20,7 @@ public record BadgeResponse(
                 badge.getCode(),
                 badge.getName(),
                 badge.getDescription(),
-                badge.getRequiredVisitCount(),
+                badge.getRequiredMascotCount(),
                 badge.getIconUrl(),
                 acquired,
                 acquired ? userBadge.getAcquiredAt() : null

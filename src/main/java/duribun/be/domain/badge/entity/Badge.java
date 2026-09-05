@@ -30,21 +30,21 @@ public class Badge extends BaseTimeEntity {
 
     private String description;
 
-    @Column(name = "required_visit_count", nullable = false)
-    private Integer requiredVisitCount;
+    @Column(name = "required_mascot_count", nullable = false)
+    private Integer requiredMascotCount;
 
     @Column(name = "icon_url")
     private String iconUrl;
 
-    private Badge(String code, String name, String description, Integer requiredVisitCount, String iconUrl) {
+    private Badge(String code, String name, String description, Integer requiredMascotCount, String iconUrl) {
         this.code = code;
         this.name = name;
         this.description = description;
-        this.requiredVisitCount = requiredVisitCount;
+        this.requiredMascotCount = requiredMascotCount;
         this.iconUrl = iconUrl;
     }
 
-    public static Badge create(String code, String name, String description, Integer requiredVisitCount, String iconUrl) {
-        return new Badge(code, name, description, requiredVisitCount, iconUrl);
+    public static Badge create(String code, String name, String description, Integer requiredMascotCount, String iconUrl) {
+        return new Badge(code, name, description, requiredMascotCount, iconUrl);
     }
 }

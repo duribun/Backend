@@ -4,11 +4,13 @@ import duribun.be.domain.badge.dto.BadgeResponse;
 import duribun.be.domain.badge.dto.MyBadgeResponse;
 import duribun.be.domain.badge.entity.Badge;
 import duribun.be.domain.badge.entity.UserBadge;
-import duribun.be.domain.badge.entity.UserVisitCounter;
+import duribun.be.domain.badge.entity.UserMascotCounter;
+import duribun.be.domain.badge.event.BadgeAcquiredEvent;
 import duribun.be.domain.badge.repository.BadgeRepository;
 import duribun.be.domain.badge.repository.UserBadgeRepository;
-import duribun.be.domain.badge.repository.UserVisitCounterRepository;
+import duribun.be.domain.badge.repository.UserMascotCounterRepository;
 import duribun.be.domain.mascot.event.MascotAcquiredEvent;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.context.event.EventListener;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.dao.OptimisticLockingFailureException;
@@ -25,31 +27,37 @@ import java.util.stream.Collectors;
 @Transactional
 public class BadgeService {
 
-    private static final int MAX_VISIT_COUNTER_RETRIES = 3;
+    private static final int MAX_MASCOT_COUNTER_RETRIES = 3;
 
     private final BadgeRepository badgeRepository;
     private final UserBadgeRepository userBadgeRepository;
-    private final UserVisitCounterRepository userVisitCounterRepository;
+    private final UserMascotCounterRepository userMascotCounterRepository;
+    private final ApplicationEventPublisher eventPublisher;
 
     public BadgeService(BadgeRepository badgeRepository,
                          UserBadgeRepository userBadgeRepository,
-                         UserVisitCounterRepository userVisitCounterRepository) {
+                         UserMascotCounterRepository userMascotCounterRepository,
+                         ApplicationEventPublisher eventPublisher) {
         this.badgeRepository = badgeRepository;
         this.userBadgeRepository = userBadgeRepository;
-        this.userVisitCounterRepository = userVisitCounterRepository;
+        this.userMascotCounterRepository = userMascotCounterRepository;
+        this.eventPublisher = eventPublisher;
     }
 
     @EventListener
     public void handleMascotAcquired(MascotAcquiredEvent event) {
-        int newCount = increaseVisitCounter(event.userId());
+        int newCount = increaseMascotCounter(event.userId());
 
         List<Badge> newlyAcquiredBadges = badgeRepository
-                .findByRequiredVisitCountLessThanEqual(newCount)
+                .findByRequiredMascotCountLessThanEqual(newCount)
                 .stream()
                 .filter(badge -> !userBadgeRepository.existsByUserIdAndBadgeId(event.userId(), badge.getId()))
                 .toList();
 
-        newlyAcquiredBadges.forEach(badge -> awardBadge(event.userId(), badge.getId()));
+        newlyAcquiredBadges.forEach(badge -> {
+            awardBadge(event.userId(), badge.getId());
+            eventPublisher.publishEvent(new BadgeAcquiredEvent(event.userId(), badge.getId(), badge.getCode()));
+        });
     }
 
     public List<BadgeResponse> getAllBadges(Long userId) {
@@ -74,19 +82,19 @@ public class BadgeService {
                 .toList();
     }
 
-    private int increaseVisitCounter(Long userId) {
+    private int increaseMascotCounter(Long userId) {
         int attempts = 0;
         while (true) {
             attempts++;
-            UserVisitCounter counter = userVisitCounterRepository.findByUserId(userId)
-                    .orElseGet(() -> UserVisitCounter.create(userId));
+            UserMascotCounter counter = userMascotCounterRepository.findByUserId(userId)
+                    .orElseGet(() -> UserMascotCounter.create(userId));
             counter.increase();
             try {
-                userVisitCounterRepository.save(counter);
-                return counter.getVisitCount();
+                userMascotCounterRepository.save(counter);
+                return counter.getMascotCount();
             } catch (DataIntegrityViolationException | OptimisticLockingFailureException e) {
                 // 동시에 같은 유저의 카운터가 먼저 생성/수정된 경우: 재조회 후 다시 반영을 재시도한다
-                if (attempts >= MAX_VISIT_COUNTER_RETRIES) {
+                if (attempts >= MAX_MASCOT_COUNTER_RETRIES) {
                     throw e;
                 }
             }

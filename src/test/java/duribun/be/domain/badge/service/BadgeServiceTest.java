@@ -2,10 +2,11 @@ package duribun.be.domain.badge.service;
 
 import duribun.be.domain.badge.entity.Badge;
 import duribun.be.domain.badge.entity.UserBadge;
-import duribun.be.domain.badge.entity.UserVisitCounter;
+import duribun.be.domain.badge.entity.UserMascotCounter;
+import duribun.be.domain.badge.event.BadgeAcquiredEvent;
 import duribun.be.domain.badge.repository.BadgeRepository;
 import duribun.be.domain.badge.repository.UserBadgeRepository;
-import duribun.be.domain.badge.repository.UserVisitCounterRepository;
+import duribun.be.domain.badge.repository.UserMascotCounterRepository;
 import duribun.be.domain.mascot.event.MascotAcquiredEvent;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -13,6 +14,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.context.ApplicationEventPublisher;
 
 import java.lang.reflect.Field;
 import java.util.List;
@@ -25,6 +27,7 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
@@ -35,17 +38,19 @@ class BadgeServiceTest {
     @Mock
     private UserBadgeRepository userBadgeRepository;
     @Mock
-    private UserVisitCounterRepository userVisitCounterRepository;
+    private UserMascotCounterRepository userMascotCounterRepository;
+    @Mock
+    private ApplicationEventPublisher eventPublisher;
 
     private BadgeService badgeService;
 
     @BeforeEach
     void setUp() {
-        badgeService = new BadgeService(badgeRepository, userBadgeRepository, userVisitCounterRepository);
+        badgeService = new BadgeService(badgeRepository, userBadgeRepository, userMascotCounterRepository, eventPublisher);
     }
 
-    private Badge badgeWithId(Long id, String code, String name, int requiredVisitCount) {
-        Badge badge = Badge.create(code, name, name, requiredVisitCount, null);
+    private Badge badgeWithId(Long id, String code, String name, int requiredMascotCount) {
+        Badge badge = Badge.create(code, name, name, requiredMascotCount, null);
         setId(badge, id);
         return badge;
     }
@@ -62,39 +67,39 @@ class BadgeServiceTest {
 
     @Test
     void handleMascotAcquired_카운터가_없을때_새로_생성해서_1로_증가시킨다() {
-        when(userVisitCounterRepository.findByUserId(10L)).thenReturn(Optional.empty());
-        when(badgeRepository.findByRequiredVisitCountLessThanEqual(1)).thenReturn(List.of());
+        when(userMascotCounterRepository.findByUserId(10L)).thenReturn(Optional.empty());
+        when(badgeRepository.findByRequiredMascotCountLessThanEqual(1)).thenReturn(List.of());
 
         badgeService.handleMascotAcquired(new MascotAcquiredEvent(10L, 1L, 1L));
 
-        ArgumentCaptor<UserVisitCounter> captor = ArgumentCaptor.forClass(UserVisitCounter.class);
-        verify(userVisitCounterRepository).save(captor.capture());
+        ArgumentCaptor<UserMascotCounter> captor = ArgumentCaptor.forClass(UserMascotCounter.class);
+        verify(userMascotCounterRepository).save(captor.capture());
         assertThat(captor.getValue().getUserId()).isEqualTo(10L);
-        assertThat(captor.getValue().getVisitCount()).isEqualTo(1);
-        verify(badgeRepository).findByRequiredVisitCountLessThanEqual(1);
+        assertThat(captor.getValue().getMascotCount()).isEqualTo(1);
+        verify(badgeRepository).findByRequiredMascotCountLessThanEqual(1);
     }
 
     @Test
     void handleMascotAcquired_기존_카운터가_있으면_1_증가시킨다() {
-        UserVisitCounter counter = UserVisitCounter.create(10L);
+        UserMascotCounter counter = UserMascotCounter.create(10L);
         counter.increase();
         counter.increase();
-        when(userVisitCounterRepository.findByUserId(10L)).thenReturn(Optional.of(counter));
-        when(badgeRepository.findByRequiredVisitCountLessThanEqual(3)).thenReturn(List.of());
+        when(userMascotCounterRepository.findByUserId(10L)).thenReturn(Optional.of(counter));
+        when(badgeRepository.findByRequiredMascotCountLessThanEqual(3)).thenReturn(List.of());
 
         badgeService.handleMascotAcquired(new MascotAcquiredEvent(10L, 2L, 5L));
 
-        ArgumentCaptor<UserVisitCounter> captor = ArgumentCaptor.forClass(UserVisitCounter.class);
-        verify(userVisitCounterRepository).save(captor.capture());
-        assertThat(captor.getValue().getVisitCount()).isEqualTo(3);
+        ArgumentCaptor<UserMascotCounter> captor = ArgumentCaptor.forClass(UserMascotCounter.class);
+        verify(userMascotCounterRepository).save(captor.capture());
+        assertThat(captor.getValue().getMascotCount()).isEqualTo(3);
     }
 
     @Test
     void handleMascotAcquired_기준을_충족하고_미보유_배지면_UserBadge를_저장한다() {
-        UserVisitCounter counter = UserVisitCounter.create(10L);
-        Badge beginner = badgeWithId(1L, "BEGINNER", "여행 초보자", 1);
-        when(userVisitCounterRepository.findByUserId(10L)).thenReturn(Optional.of(counter));
-        when(badgeRepository.findByRequiredVisitCountLessThanEqual(1)).thenReturn(List.of(beginner));
+        UserMascotCounter counter = UserMascotCounter.create(10L);
+        Badge seedling = badgeWithId(1L, "SEEDLING", "여행 새싹", 0);
+        when(userMascotCounterRepository.findByUserId(10L)).thenReturn(Optional.of(counter));
+        when(badgeRepository.findByRequiredMascotCountLessThanEqual(1)).thenReturn(List.of(seedling));
         when(userBadgeRepository.existsByUserIdAndBadgeId(10L, 1L)).thenReturn(false);
 
         badgeService.handleMascotAcquired(new MascotAcquiredEvent(10L, 1L, 1L));
@@ -106,62 +111,89 @@ class BadgeServiceTest {
     }
 
     @Test
-    void handleMascotAcquired_이미_보유한_배지는_다시_부여하지_않는다() {
-        UserVisitCounter counter = UserVisitCounter.create(10L);
-        Badge beginner = badgeWithId(1L, "BEGINNER", "여행 초보자", 1);
-        when(userVisitCounterRepository.findByUserId(10L)).thenReturn(Optional.of(counter));
-        when(badgeRepository.findByRequiredVisitCountLessThanEqual(1)).thenReturn(List.of(beginner));
+    void handleMascotAcquired_이미_보유한_배지는_다시_부여하지_않고_이벤트도_발행하지_않는다() {
+        UserMascotCounter counter = UserMascotCounter.create(10L);
+        Badge seedling = badgeWithId(1L, "SEEDLING", "여행 새싹", 0);
+        when(userMascotCounterRepository.findByUserId(10L)).thenReturn(Optional.of(counter));
+        when(badgeRepository.findByRequiredMascotCountLessThanEqual(1)).thenReturn(List.of(seedling));
         when(userBadgeRepository.existsByUserIdAndBadgeId(10L, 1L)).thenReturn(true);
 
         badgeService.handleMascotAcquired(new MascotAcquiredEvent(10L, 1L, 1L));
 
         verify(userBadgeRepository, never()).save(any());
+        verifyNoInteractions(eventPublisher);
     }
 
     @Test
-    void handleMascotAcquired_한번에_여러_배지_기준을_넘으면_모두_부여한다() {
-        UserVisitCounter counter = UserVisitCounter.create(10L);
+    void handleMascotAcquired_한번에_여러_배지_기준을_넘으면_모두_부여하고_각각_이벤트를_발행한다() {
+        UserMascotCounter counter = UserMascotCounter.create(10L);
         for (int i = 0; i < 4; i++) {
             counter.increase();
         }
-        Badge beginner = badgeWithId(1L, "BEGINNER", "여행 초보자", 1);
-        Badge explorer = badgeWithId(2L, "EXPLORER", "국내 탐험가", 5);
-        when(userVisitCounterRepository.findByUserId(10L)).thenReturn(Optional.of(counter));
-        when(badgeRepository.findByRequiredVisitCountLessThanEqual(5)).thenReturn(List.of(beginner, explorer));
+        Badge seedling = badgeWithId(1L, "SEEDLING", "여행 새싹", 0);
+        Badge beginner = badgeWithId(2L, "BEGINNER", "여행 입문자", 5);
+        when(userMascotCounterRepository.findByUserId(10L)).thenReturn(Optional.of(counter));
+        when(badgeRepository.findByRequiredMascotCountLessThanEqual(5)).thenReturn(List.of(seedling, beginner));
         when(userBadgeRepository.existsByUserIdAndBadgeId(eq(10L), anyLong())).thenReturn(false);
 
         badgeService.handleMascotAcquired(new MascotAcquiredEvent(10L, 3L, 5L));
 
         verify(userBadgeRepository, times(2)).save(any(UserBadge.class));
+
+        ArgumentCaptor<BadgeAcquiredEvent> captor = ArgumentCaptor.forClass(BadgeAcquiredEvent.class);
+        verify(eventPublisher, times(2)).publishEvent(captor.capture());
+        assertThat(captor.getAllValues())
+                .extracting(BadgeAcquiredEvent::badgeId)
+                .containsExactlyInAnyOrder(1L, 2L);
+        assertThat(captor.getAllValues())
+                .extracting(BadgeAcquiredEvent::badgeCode)
+                .containsExactlyInAnyOrder("SEEDLING", "BEGINNER");
+    }
+
+    @Test
+    void handleMascotAcquired_기준을_충족하고_미보유_배지면_BadgeAcquiredEvent를_발행한다() {
+        UserMascotCounter counter = UserMascotCounter.create(10L);
+        Badge seedling = badgeWithId(1L, "SEEDLING", "여행 새싹", 0);
+        when(userMascotCounterRepository.findByUserId(10L)).thenReturn(Optional.of(counter));
+        when(badgeRepository.findByRequiredMascotCountLessThanEqual(1)).thenReturn(List.of(seedling));
+        when(userBadgeRepository.existsByUserIdAndBadgeId(10L, 1L)).thenReturn(false);
+
+        badgeService.handleMascotAcquired(new MascotAcquiredEvent(10L, 1L, 1L));
+
+        ArgumentCaptor<BadgeAcquiredEvent> captor = ArgumentCaptor.forClass(BadgeAcquiredEvent.class);
+        verify(eventPublisher).publishEvent(captor.capture());
+        assertThat(captor.getValue().userId()).isEqualTo(10L);
+        assertThat(captor.getValue().badgeId()).isEqualTo(1L);
+        assertThat(captor.getValue().badgeCode()).isEqualTo("SEEDLING");
     }
 
     @Test
     void getAllBadges_전체_배지에_유저의_획득여부를_포함해서_반환한다() {
-        Badge beginner = badgeWithId(1L, "BEGINNER", "여행 초보자", 1);
-        Badge explorer = badgeWithId(2L, "EXPLORER", "국내 탐험가", 5);
+        Badge seedling = badgeWithId(1L, "SEEDLING", "여행 새싹", 0);
+        Badge beginner = badgeWithId(2L, "BEGINNER", "여행 입문자", 5);
         UserBadge acquired = UserBadge.create(10L, 1L, java.time.LocalDateTime.now());
-        when(badgeRepository.findAll()).thenReturn(List.of(beginner, explorer));
+        when(badgeRepository.findAll()).thenReturn(List.of(seedling, beginner));
         when(userBadgeRepository.findByUserId(10L)).thenReturn(List.of(acquired));
 
         var responses = badgeService.getAllBadges(10L);
 
         assertThat(responses).hasSize(2);
-        assertThat(responses).filteredOn(r -> r.code().equals("BEGINNER"))
+        assertThat(responses).filteredOn(r -> r.code().equals("SEEDLING"))
                 .allMatch(r -> r.acquired());
-        assertThat(responses).filteredOn(r -> r.code().equals("EXPLORER"))
+        assertThat(responses).filteredOn(r -> r.code().equals("BEGINNER"))
                 .allMatch(r -> !r.acquired());
     }
 
     @Test
     void getMyBadges_보유한_배지만_반환한다() {
-        Badge beginner = badgeWithId(1L, "BEGINNER", "여행 초보자", 1);
+        Badge seedling = badgeWithId(1L, "SEEDLING", "여행 새싹", 0);
         UserBadge acquired = UserBadge.create(10L, 1L, java.time.LocalDateTime.now());
         when(userBadgeRepository.findByUserId(10L)).thenReturn(List.of(acquired));
-        when(badgeRepository.findAllById(List.of(1L))).thenReturn(List.of(beginner));
+        when(badgeRepository.findAllById(List.of(1L))).thenReturn(List.of(seedling));
 
         var responses = badgeService.getMyBadges(10L);
 
         assertThat(responses).hasSize(1);
-        assertThat(responses.get(0).code()).isEqualTo("BEGINNER");
+        assertThat(responses.get(0).code()).isEqualTo("SEEDLING");
     }
 }
