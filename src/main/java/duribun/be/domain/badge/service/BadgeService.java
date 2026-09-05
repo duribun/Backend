@@ -8,7 +8,7 @@ import duribun.be.domain.badge.entity.UserVisitCounter;
 import duribun.be.domain.badge.repository.BadgeRepository;
 import duribun.be.domain.badge.repository.UserBadgeRepository;
 import duribun.be.domain.badge.repository.UserVisitCounterRepository;
-import duribun.be.domain.location.event.LocationVerifiedEvent;
+import duribun.be.domain.mascot.event.MascotAcquiredEvent;
 import org.springframework.context.event.EventListener;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.dao.OptimisticLockingFailureException;
@@ -40,11 +40,7 @@ public class BadgeService {
     }
 
     @EventListener
-    public void handleLocationVerified(LocationVerifiedEvent event) {
-        if (!event.isFirstVisit()) {
-            return;
-        }
-
+    public void handleMascotAcquired(MascotAcquiredEvent event) {
         int newCount = increaseVisitCounter(event.userId());
 
         List<Badge> newlyAcquiredBadges = badgeRepository
