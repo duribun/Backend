@@ -1,13 +1,10 @@
 package duribun.be.domain.setting.service;
 
 import duribun.be.domain.auth.service.AuthService;
-import duribun.be.domain.setting.dto.ProfileUpdateRequest;
-import duribun.be.domain.setting.dto.ProfileUpdateResponse;
 import duribun.be.domain.setting.dto.UserSettingResponse;
 import duribun.be.domain.setting.dto.WithdrawResponse;
 import duribun.be.domain.setting.entity.UserSetting;
 import duribun.be.domain.setting.repository.UserSettingRepository;
-import duribun.be.domain.user.entity.User;
 import duribun.be.domain.user.entity.UserStatus;
 import duribun.be.domain.user.service.UserService;
 import org.springframework.dao.DataIntegrityViolationException;
@@ -44,15 +41,6 @@ public class SettingService {
         userService.withdraw(userId);
         authService.revokeAllTokens(userId);
         return WithdrawResponse.from(UserStatus.WITHDRAWN);
-    }
-
-    public boolean checkNicknameAvailability(Long userId, String nickname) {
-        return userService.isNicknameAvailable(userId, nickname);
-    }
-
-    public ProfileUpdateResponse updateProfile(Long userId, ProfileUpdateRequest request) {
-        User user = userService.updateProfile(userId, request.nickname(), request.birthDate(), request.gender());
-        return ProfileUpdateResponse.from(user);
     }
 
     private UserSetting findOrCreateSetting(Long userId) {
