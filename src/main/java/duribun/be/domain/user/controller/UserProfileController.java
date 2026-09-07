@@ -1,9 +1,10 @@
-package duribun.be.domain.setting.controller;
+package duribun.be.domain.user.controller;
 
-import duribun.be.domain.setting.dto.NicknameCheckResponse;
-import duribun.be.domain.setting.dto.ProfileUpdateRequest;
-import duribun.be.domain.setting.dto.ProfileUpdateResponse;
-import duribun.be.domain.setting.service.SettingService;
+import duribun.be.domain.user.dto.NicknameCheckResponse;
+import duribun.be.domain.user.dto.ProfileUpdateRequest;
+import duribun.be.domain.user.dto.ProfileUpdateResponse;
+import duribun.be.domain.user.entity.User;
+import duribun.be.domain.user.service.UserService;
 import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -18,21 +19,22 @@ import org.springframework.web.bind.annotation.RestController;
 @RequestMapping("/api/users")
 public class UserProfileController {
 
-    private final SettingService settingService;
+    private final UserService userService;
 
-    public UserProfileController(SettingService settingService) {
-        this.settingService = settingService;
+    public UserProfileController(UserService userService) {
+        this.userService = userService;
     }
 
     @GetMapping("/nickname-check")
     public ResponseEntity<NicknameCheckResponse> checkNickname(@AuthenticationPrincipal Long userId,
                                                                 @RequestParam String nickname) {
-        return ResponseEntity.ok(NicknameCheckResponse.of(settingService.checkNicknameAvailability(userId, nickname)));
+        return ResponseEntity.ok(NicknameCheckResponse.of(userService.isNicknameAvailable(userId, nickname)));
     }
 
     @PatchMapping("/me/profile")
     public ResponseEntity<ProfileUpdateResponse> updateProfile(@AuthenticationPrincipal Long userId,
                                                                 @Valid @RequestBody ProfileUpdateRequest request) {
-        return ResponseEntity.ok(settingService.updateProfile(userId, request));
+        User user = userService.updateProfile(userId, request.nickname(), request.birthDate(), request.gender());
+        return ResponseEntity.ok(ProfileUpdateResponse.from(user));
     }
 }
