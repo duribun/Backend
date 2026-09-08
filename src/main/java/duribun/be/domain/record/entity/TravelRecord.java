@@ -38,13 +38,16 @@ public class TravelRecord extends BaseTimeEntity {
     @Column(name = "visited_at", nullable = false)
     private LocalDate visitedAt;
 
-    @Column(name = "place_name", nullable = false, length = 200)
+    /**
+     * placeName/latitude/longitude는 장소를 등록하지 않은 기록을 허용하기 위해 nullable이다.
+     * 셋 다 null이거나 셋 다 값이 있어야 하는 all-or-nothing 제약은 요청 검증 단계
+     * (RecordService#validatePlaceConsistency)에서 강제하므로, 엔티티 레벨에서는 별도 검증을 하지 않는다.
+     */
+    @Column(name = "place_name", length = 200)
     private String placeName;
 
-    @Column(nullable = false)
     private Double latitude;
 
-    @Column(nullable = false)
     private Double longitude;
 
     @Enumerated(EnumType.STRING)
