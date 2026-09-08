@@ -257,6 +257,16 @@ class RecordControllerTest {
         }
 
         @Test
+        void 목록_각_항목에_content가_포함된다() throws Exception {
+            saveRecord(1L, "부산 여행", LocalDate.of(2026, 8, 9));
+
+            mockMvc.perform(get("/api/records/me")
+                            .header(HttpHeaders.AUTHORIZATION, bearerToken(1L)))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$[0].content").value("내용"));
+        }
+
+        @Test
         void 년월_필터로_해당_월의_기록만_조회한다() throws Exception {
             saveRecord(1L, "7월 기록", LocalDate.of(2026, 7, 15));
             saveRecord(1L, "8월 기록", LocalDate.of(2026, 8, 9));

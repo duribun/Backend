@@ -315,6 +315,17 @@ class RecordServiceTest {
 
             assertThat(result.get(0).thumbnailUrl()).isNull();
         }
+
+        @Test
+        void 목록_응답에_content가_포함된다() {
+            TravelRecord record = recordWithId(1L, 1L);
+            when(recordRepository.findByUserIdOrderByVisitedAtAsc(1L)).thenReturn(List.of(record));
+            when(recordImageRepository.findByRecordIdInOrderByRecordIdAscSortOrderAsc(any())).thenReturn(List.of());
+
+            List<RecordSummaryResponse> result = recordService.getMyRecords(1L, null, null);
+
+            assertThat(result.get(0).content()).isEqualTo("내용");
+        }
     }
 
     // ── 기록 상세 조회 ──────────────────────────────────────────────────────────
