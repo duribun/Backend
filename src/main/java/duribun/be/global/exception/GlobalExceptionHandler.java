@@ -95,6 +95,11 @@ public class GlobalExceptionHandler {
         return respond(HttpStatus.FORBIDDEN, e.getMessage());
     }
 
+    @ExceptionHandler(InvalidImageExtensionException.class)
+    public ResponseEntity<ErrorResponse> handleInvalidImageExtension(InvalidImageExtensionException e) {
+        return respond(HttpStatus.BAD_REQUEST, e.getMessage());
+    }
+
     @ExceptionHandler(MethodArgumentNotValidException.class)
     public ResponseEntity<ErrorResponse> handleMethodArgumentNotValid(MethodArgumentNotValidException e) {
         String message = e.getBindingResult().getFieldErrors().stream()
