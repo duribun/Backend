@@ -1,6 +1,7 @@
 package duribun.be.domain.record.controller;
 
 import duribun.be.domain.record.dto.CreateRecordRequest;
+import duribun.be.domain.record.dto.PresignedImageUploadResponse;
 import duribun.be.domain.record.dto.RecordResponse;
 import duribun.be.domain.record.dto.RecordSummaryResponse;
 import duribun.be.domain.record.dto.UpdateRecordRequest;
@@ -30,6 +31,12 @@ public class RecordController {
         this.recordService = recordService;
     }
 
+    @PostMapping("/images/presigned-url")
+    public ResponseEntity<PresignedImageUploadResponse> issuePresignedUrl(@AuthenticationPrincipal Long userId,
+                                                                           @RequestParam String extension) {
+        return ResponseEntity.ok(recordService.issuePresignedUrl(userId, extension));
+    }
+
     @PostMapping
     public ResponseEntity<RecordResponse> create(@AuthenticationPrincipal Long userId,
                                                   @RequestBody @Valid CreateRecordRequest request) {
@@ -53,8 +60,14 @@ public class RecordController {
     @PatchMapping("/{recordId}")
     public ResponseEntity<RecordResponse> update(@AuthenticationPrincipal Long userId,
                                                   @PathVariable Long recordId,
-                                                  @RequestBody UpdateRecordRequest request) {
+                                                  @RequestBody @Valid UpdateRecordRequest request) {
         return ResponseEntity.ok(recordService.updateRecord(userId, recordId, request));
+    }
+
+    @PatchMapping("/{recordId}/favorite")
+    public ResponseEntity<RecordResponse> toggleFavorite(@AuthenticationPrincipal Long userId,
+                                                          @PathVariable Long recordId) {
+        return ResponseEntity.ok(recordService.toggleFavorite(userId, recordId));
     }
 
     @DeleteMapping("/{recordId}")

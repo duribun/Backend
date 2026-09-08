@@ -1,22 +1,25 @@
 package duribun.be.domain.record.dto;
 
 import duribun.be.domain.record.entity.TravelRecord;
+
 import java.time.LocalDate;
 
 public record RecordSummaryResponse(
         Long id,
         String title,
-        String imageUrl,
+        String thumbnailUrl,
         LocalDate visitedAt,
-        String placeName
+        String placeName,
+        boolean favorite
 ) {
-    public static RecordSummaryResponse from(TravelRecord record) {
+    public static RecordSummaryResponse of(TravelRecord record, String thumbnailUrl) {
         return new RecordSummaryResponse(
                 record.getId(),
                 record.getTitle(),
-                record.getImageUrl(),
+                thumbnailUrl,
                 record.getVisitedAt(),
-                record.getPlaceName()
+                record.getPlaceName(),
+                record.isFavorite()
         );
     }
 }
