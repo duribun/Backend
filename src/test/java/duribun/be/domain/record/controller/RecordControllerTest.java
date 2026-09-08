@@ -1,9 +1,12 @@
 package duribun.be.domain.record.controller;
 
+import duribun.be.domain.record.entity.Mood;
 import duribun.be.domain.record.entity.TravelRecord;
+import duribun.be.domain.record.entity.Weather;
 import duribun.be.domain.record.repository.RecordRepository;
 import duribun.be.domain.user.entity.Role;
 import duribun.be.global.security.jwt.JwtTokenProvider;
+import org.hamcrest.Matchers;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -49,7 +52,22 @@ class RecordControllerTest {
 
     private TravelRecord saveRecord(Long userId, String title, LocalDate visitedAt) {
         return recordRepository.saveAndFlush(
-                TravelRecord.create(userId, title, "내용", null, visitedAt, "장소")
+                TravelRecord.create(userId, title, "내용", visitedAt, "장소",
+                        35.0968, 129.0306, Weather.CLEAR, 24, Mood.HAPPY)
+        );
+    }
+
+    private Map<String, Object> validCreateBody() {
+        return Map.of(
+                "title", "부산 여행",
+                "content", "자갈치시장 방문",
+                "visitedAt", "2026-08-09",
+                "placeName", "부산 자갈치시장",
+                "latitude", 35.0968,
+                "longitude", 129.0306,
+                "weather", "CLEAR",
+                "temperature", 24,
+                "mood", "HAPPY"
         );
     }
 
@@ -64,7 +82,9 @@ class RecordControllerTest {
             "GET,/api/records/me",
             "GET,/api/records/1",
             "PATCH,/api/records/1",
-            "DELETE,/api/records/1"
+            "PATCH,/api/records/1/favorite",
+            "DELETE,/api/records/1",
+            "POST,/api/records/images/presigned-url?extension=jpg"
         })
         void 인증없이_접근하면_401을_반환한다(String httpMethod, String url) throws Exception {
             mockMvc.perform(buildRequest(httpMethod, url))
@@ -89,25 +109,27 @@ class RecordControllerTest {
 
         static Stream<Arguments> missingFieldRequests() {
             return Stream.of(
-                    Arguments.of("title",
-                            "{\"content\":\"내용\",\"visitedAt\":\"2026-08-09\",\"placeName\":\"장소\"}"),
-                    Arguments.of("content",
-                            "{\"title\":\"제목\",\"visitedAt\":\"2026-08-09\",\"placeName\":\"장소\"}"),
-                    Arguments.of("visitedAt",
-                            "{\"title\":\"제목\",\"content\":\"내용\",\"placeName\":\"장소\"}"),
-                    Arguments.of("placeName",
-                            "{\"title\":\"제목\",\"content\":\"내용\",\"visitedAt\":\"2026-08-09\"}")
+                    Arguments.of("title", "title"),
+                    Arguments.of("content", "content"),
+                    Arguments.of("visitedAt", "visitedAt"),
+                    Arguments.of("weather", "weather"),
+                    Arguments.of("temperature", "temperature"),
+                    Arguments.of("mood", "mood")
+            );
+        }
+
+        static Stream<Arguments> partialPlaceFields() {
+            // placeName/latitude/longitude 중 하나만 제거 → 나머지 둘만 남아 "일부만 있는" 상태가 됨
+            return Stream.of(
+                    Arguments.of("placeName"),
+                    Arguments.of("latitude"),
+                    Arguments.of("longitude")
             );
         }
 
         @Test
         void 생성_성공시_201과_생성된_기록을_반환한다() throws Exception {
-            String body = objectMapper.writeValueAsString(Map.of(
-                    "title", "부산 여행",
-                    "content", "자갈치시장 방문",
-                    "visitedAt", "2026-08-09",
-                    "placeName", "부산 자갈치시장"
-            ));
+            String body = objectMapper.writeValueAsString(validCreateBody());
 
             mockMvc.perform(post("/api/records")
                             .header(HttpHeaders.AUTHORIZATION, bearerToken(1L))
@@ -116,16 +138,103 @@ class RecordControllerTest {
                     .andExpect(status().isCreated())
                     .andExpect(jsonPath("$.title").value("부산 여행"))
                     .andExpect(jsonPath("$.placeName").value("부산 자갈치시장"))
-                    .andExpect(jsonPath("$.visitedAt").value("2026-08-09"));
+                    .andExpect(jsonPath("$.weather").value("CLEAR"))
+                    .andExpect(jsonPath("$.mood").value("HAPPY"))
+                    .andExpect(jsonPath("$.favorite").value(false))
+                    .andExpect(jsonPath("$.imageUrls").isEmpty());
+        }
+
+        @Test
+        void 사진_URL_4장까지_포함해_생성할_수_있다() throws Exception {
+            Map<String, Object> body = new java.util.HashMap<>(validCreateBody());
+            body.put("imageUrls", java.util.List.of("https://a.jpg", "https://b.jpg", "https://c.jpg", "https://d.jpg"));
+
+            mockMvc.perform(post("/api/records")
+                            .header(HttpHeaders.AUTHORIZATION, bearerToken(1L))
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content(objectMapper.writeValueAsString(body)))
+                    .andExpect(status().isCreated())
+                    .andExpect(jsonPath("$.imageUrls.length()").value(4));
+        }
+
+        @Test
+        void 사진이_4장을_초과하면_400을_반환한다() throws Exception {
+            Map<String, Object> body = new java.util.HashMap<>(validCreateBody());
+            body.put("imageUrls", java.util.List.of("https://a.jpg", "https://b.jpg", "https://c.jpg", "https://d.jpg", "https://e.jpg"));
+
+            mockMvc.perform(post("/api/records")
+                            .header(HttpHeaders.AUTHORIZATION, bearerToken(1L))
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content(objectMapper.writeValueAsString(body)))
+                    .andExpect(status().isBadRequest());
+        }
+
+        @Test
+        void 사진_없이_빈_배열로_생성할_수_있다() throws Exception {
+            Map<String, Object> body = new java.util.HashMap<>(validCreateBody());
+            body.put("imageUrls", java.util.List.of());
+
+            mockMvc.perform(post("/api/records")
+                            .header(HttpHeaders.AUTHORIZATION, bearerToken(1L))
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content(objectMapper.writeValueAsString(body)))
+                    .andExpect(status().isCreated())
+                    .andExpect(jsonPath("$.imageUrls").isEmpty());
+        }
+
+        @Test
+        void 사진_필드를_아예_보내지_않아도_생성된다() throws Exception {
+            Map<String, Object> body = new java.util.HashMap<>(validCreateBody());
+            body.remove("imageUrls");
+
+            mockMvc.perform(post("/api/records")
+                            .header(HttpHeaders.AUTHORIZATION, bearerToken(1L))
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content(objectMapper.writeValueAsString(body)))
+                    .andExpect(status().isCreated())
+                    .andExpect(jsonPath("$.imageUrls").isEmpty());
         }
 
         @ParameterizedTest(name = "{0} 누락시 400")
         @MethodSource("missingFieldRequests")
-        void 필수_필드_누락시_400을_반환한다(String missingField, String body) throws Exception {
+        void 필수_필드_누락시_400을_반환한다(String missingField, String fieldToRemove) throws Exception {
+            Map<String, Object> body = new java.util.HashMap<>(validCreateBody());
+            body.remove(fieldToRemove);
+
             mockMvc.perform(post("/api/records")
                             .header(HttpHeaders.AUTHORIZATION, bearerToken(1L))
                             .contentType(MediaType.APPLICATION_JSON)
-                            .content(body))
+                            .content(objectMapper.writeValueAsString(body)))
+                    .andExpect(status().isBadRequest());
+        }
+
+        @Test
+        void 장소_필드가_모두_없으면_장소_없이_생성된다() throws Exception {
+            Map<String, Object> body = new java.util.HashMap<>(validCreateBody());
+            body.remove("placeName");
+            body.remove("latitude");
+            body.remove("longitude");
+
+            mockMvc.perform(post("/api/records")
+                            .header(HttpHeaders.AUTHORIZATION, bearerToken(1L))
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content(objectMapper.writeValueAsString(body)))
+                    .andExpect(status().isCreated())
+                    .andExpect(jsonPath("$.placeName").value(Matchers.nullValue()))
+                    .andExpect(jsonPath("$.latitude").value(Matchers.nullValue()))
+                    .andExpect(jsonPath("$.longitude").value(Matchers.nullValue()));
+        }
+
+        @ParameterizedTest(name = "{0}만 없으면 400")
+        @MethodSource("partialPlaceFields")
+        void 장소_필드가_일부만_있으면_400을_반환한다(String fieldToRemove) throws Exception {
+            Map<String, Object> body = new java.util.HashMap<>(validCreateBody());
+            body.remove(fieldToRemove);
+
+            mockMvc.perform(post("/api/records")
+                            .header(HttpHeaders.AUTHORIZATION, bearerToken(1L))
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content(objectMapper.writeValueAsString(body)))
                     .andExpect(status().isBadRequest());
         }
     }
@@ -170,6 +279,33 @@ class RecordControllerTest {
                     .andExpect(jsonPath("$[0].title").value("이전 기록"))
                     .andExpect(jsonPath("$[1].title").value("나중 기록"));
         }
+
+        @Test
+        void 즐겨찾기한_기록이_최상단에_온다() throws Exception {
+            saveRecord(1L, "이전 기록", LocalDate.of(2026, 8, 1));
+            TravelRecord later = saveRecord(1L, "나중 기록", LocalDate.of(2026, 8, 15));
+
+            mockMvc.perform(patch("/api/records/" + later.getId() + "/favorite")
+                            .header(HttpHeaders.AUTHORIZATION, bearerToken(1L)))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.favorite").value(true));
+
+            mockMvc.perform(get("/api/records/me")
+                            .header(HttpHeaders.AUTHORIZATION, bearerToken(1L)))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$[0].title").value("나중 기록"))
+                    .andExpect(jsonPath("$[0].favorite").value(true));
+        }
+
+        @Test
+        void 사진이_없는_기록은_thumbnailUrl이_null로_내려온다() throws Exception {
+            saveRecord(1L, "사진 없는 기록", LocalDate.of(2026, 8, 1));
+
+            mockMvc.perform(get("/api/records/me")
+                            .header(HttpHeaders.AUTHORIZATION, bearerToken(1L)))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$[0].thumbnailUrl").value(Matchers.nullValue()));
+        }
     }
 
     // ── 기록 상세 조회 ──────────────────────────────────────────────────────────
@@ -186,7 +322,9 @@ class RecordControllerTest {
                     .andExpect(status().isOk())
                     .andExpect(jsonPath("$.id").value(record.getId()))
                     .andExpect(jsonPath("$.title").value("부산 여행"))
-                    .andExpect(jsonPath("$.content").value("내용"));
+                    .andExpect(jsonPath("$.content").value("내용"))
+                    .andExpect(jsonPath("$.latitude").value(35.0968))
+                    .andExpect(jsonPath("$.longitude").value(129.0306));
         }
 
         @Test
@@ -226,6 +364,32 @@ class RecordControllerTest {
         }
 
         @Test
+        void 장소_필드_중_일부만_보내면_400을_반환한다() throws Exception {
+            TravelRecord record = saveRecord(1L, "원래 제목", LocalDate.of(2026, 8, 9));
+            String body = objectMapper.writeValueAsString(Map.of("latitude", 37.5512));
+
+            mockMvc.perform(patch("/api/records/" + record.getId())
+                            .header(HttpHeaders.AUTHORIZATION, bearerToken(1L))
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content(body))
+                    .andExpect(status().isBadRequest());
+        }
+
+        @Test
+        void 장소_필드를_모두_보내면_장소가_갱신된다() throws Exception {
+            TravelRecord record = saveRecord(1L, "원래 제목", LocalDate.of(2026, 8, 9));
+            String body = objectMapper.writeValueAsString(Map.of(
+                    "placeName", "서울 남산타워", "latitude", 37.5512, "longitude", 126.9882));
+
+            mockMvc.perform(patch("/api/records/" + record.getId())
+                            .header(HttpHeaders.AUTHORIZATION, bearerToken(1L))
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content(body))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.placeName").value("서울 남산타워"));
+        }
+
+        @Test
         void 타인의_기록_수정시_403을_반환한다() throws Exception {
             TravelRecord record = saveRecord(2L, "타인 기록", LocalDate.of(2026, 8, 9));
             String body = objectMapper.writeValueAsString(Map.of("title", "수정 시도"));
@@ -234,6 +398,36 @@ class RecordControllerTest {
                             .header(HttpHeaders.AUTHORIZATION, bearerToken(1L))
                             .contentType(MediaType.APPLICATION_JSON)
                             .content(body))
+                    .andExpect(status().isForbidden());
+        }
+    }
+
+    // ── 즐겨찾기 ───────────────────────────────────────────────────────────────
+
+    @Nested
+    class 즐겨찾기 {
+
+        @Test
+        void 토글하면_즐겨찾기_상태가_반전된다() throws Exception {
+            TravelRecord record = saveRecord(1L, "기록", LocalDate.of(2026, 8, 9));
+
+            mockMvc.perform(patch("/api/records/" + record.getId() + "/favorite")
+                            .header(HttpHeaders.AUTHORIZATION, bearerToken(1L)))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.favorite").value(true));
+
+            mockMvc.perform(patch("/api/records/" + record.getId() + "/favorite")
+                            .header(HttpHeaders.AUTHORIZATION, bearerToken(1L)))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.favorite").value(false));
+        }
+
+        @Test
+        void 타인의_기록이면_403을_반환한다() throws Exception {
+            TravelRecord record = saveRecord(2L, "타인 기록", LocalDate.of(2026, 8, 9));
+
+            mockMvc.perform(patch("/api/records/" + record.getId() + "/favorite")
+                            .header(HttpHeaders.AUTHORIZATION, bearerToken(1L)))
                     .andExpect(status().isForbidden());
         }
     }

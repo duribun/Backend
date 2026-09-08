@@ -47,6 +47,9 @@ dependencies {
     // Kakao/Naver 외부 API 호출용 RestClient.Builder 자동 구성
     implementation 'org.springframework.boot:spring-boot-starter-restclient'
 
+    // AWS S3 - 여행 기록 사진 업로드 (presigned URL 발급/삭제)
+    implementation 'software.amazon.awssdk:s3:2.29.52'
+
     testRuntimeOnly 'com.h2database:h2'
     testImplementation 'org.springframework.boot:spring-boot-starter-data-jpa-test'
     testImplementation 'org.springframework.boot:spring-boot-starter-security-test'

@@ -50,6 +50,13 @@ tour-api:
   base-url: "${TOUR_API_BASE_URL:https://apis.data.go.kr/B551011/KorService2}"
   service-key: ${TOUR_API_SERVICE_KEY:}
 
+# AWS S3 - 여행 기록(record) 도메인 사진 업로드. 자격증명은 SDK 기본 자격증명 체인(환경변수/IAM Role) 사용
+aws:
+  s3:
+    bucket: ${AWS_S3_BUCKET:}
+    region: ${AWS_REGION:ap-northeast-2}
+    presigned-url-expire-minutes: ${AWS_S3_PRESIGNED_URL_EXPIRE_MINUTES:10}
+
 # Swagger
 springdoc:
   swagger-ui:
