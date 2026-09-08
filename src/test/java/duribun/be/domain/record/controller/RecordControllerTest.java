@@ -6,6 +6,7 @@ import duribun.be.domain.record.entity.Weather;
 import duribun.be.domain.record.repository.RecordRepository;
 import duribun.be.domain.user.entity.Role;
 import duribun.be.global.security.jwt.JwtTokenProvider;
+import org.hamcrest.Matchers;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -111,12 +112,18 @@ class RecordControllerTest {
                     Arguments.of("title", "title"),
                     Arguments.of("content", "content"),
                     Arguments.of("visitedAt", "visitedAt"),
-                    Arguments.of("placeName", "placeName"),
-                    Arguments.of("latitude", "latitude"),
-                    Arguments.of("longitude", "longitude"),
                     Arguments.of("weather", "weather"),
                     Arguments.of("temperature", "temperature"),
                     Arguments.of("mood", "mood")
+            );
+        }
+
+        static Stream<Arguments> partialPlaceFields() {
+            // placeName/latitude/longitude 중 하나만 제거 → 나머지 둘만 남아 "일부만 있는" 상태가 됨
+            return Stream.of(
+                    Arguments.of("placeName"),
+                    Arguments.of("latitude"),
+                    Arguments.of("longitude")
             );
         }
 
@@ -162,9 +169,65 @@ class RecordControllerTest {
                     .andExpect(status().isBadRequest());
         }
 
+        @Test
+        void 사진_없이_빈_배열로_생성할_수_있다() throws Exception {
+            Map<String, Object> body = new java.util.HashMap<>(validCreateBody());
+            body.put("imageUrls", java.util.List.of());
+
+            mockMvc.perform(post("/api/records")
+                            .header(HttpHeaders.AUTHORIZATION, bearerToken(1L))
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content(objectMapper.writeValueAsString(body)))
+                    .andExpect(status().isCreated())
+                    .andExpect(jsonPath("$.imageUrls").isEmpty());
+        }
+
+        @Test
+        void 사진_필드를_아예_보내지_않아도_생성된다() throws Exception {
+            Map<String, Object> body = new java.util.HashMap<>(validCreateBody());
+            body.remove("imageUrls");
+
+            mockMvc.perform(post("/api/records")
+                            .header(HttpHeaders.AUTHORIZATION, bearerToken(1L))
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content(objectMapper.writeValueAsString(body)))
+                    .andExpect(status().isCreated())
+                    .andExpect(jsonPath("$.imageUrls").isEmpty());
+        }
+
         @ParameterizedTest(name = "{0} 누락시 400")
         @MethodSource("missingFieldRequests")
         void 필수_필드_누락시_400을_반환한다(String missingField, String fieldToRemove) throws Exception {
+            Map<String, Object> body = new java.util.HashMap<>(validCreateBody());
+            body.remove(fieldToRemove);
+
+            mockMvc.perform(post("/api/records")
+                            .header(HttpHeaders.AUTHORIZATION, bearerToken(1L))
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content(objectMapper.writeValueAsString(body)))
+                    .andExpect(status().isBadRequest());
+        }
+
+        @Test
+        void 장소_필드가_모두_없으면_장소_없이_생성된다() throws Exception {
+            Map<String, Object> body = new java.util.HashMap<>(validCreateBody());
+            body.remove("placeName");
+            body.remove("latitude");
+            body.remove("longitude");
+
+            mockMvc.perform(post("/api/records")
+                            .header(HttpHeaders.AUTHORIZATION, bearerToken(1L))
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content(objectMapper.writeValueAsString(body)))
+                    .andExpect(status().isCreated())
+                    .andExpect(jsonPath("$.placeName").value(Matchers.nullValue()))
+                    .andExpect(jsonPath("$.latitude").value(Matchers.nullValue()))
+                    .andExpect(jsonPath("$.longitude").value(Matchers.nullValue()));
+        }
+
+        @ParameterizedTest(name = "{0}만 없으면 400")
+        @MethodSource("partialPlaceFields")
+        void 장소_필드가_일부만_있으면_400을_반환한다(String fieldToRemove) throws Exception {
             Map<String, Object> body = new java.util.HashMap<>(validCreateBody());
             body.remove(fieldToRemove);
 
@@ -233,6 +296,16 @@ class RecordControllerTest {
                     .andExpect(jsonPath("$[0].title").value("나중 기록"))
                     .andExpect(jsonPath("$[0].favorite").value(true));
         }
+
+        @Test
+        void 사진이_없는_기록은_thumbnailUrl이_null로_내려온다() throws Exception {
+            saveRecord(1L, "사진 없는 기록", LocalDate.of(2026, 8, 1));
+
+            mockMvc.perform(get("/api/records/me")
+                            .header(HttpHeaders.AUTHORIZATION, bearerToken(1L)))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$[0].thumbnailUrl").value(Matchers.nullValue()));
+        }
     }
 
     // ── 기록 상세 조회 ──────────────────────────────────────────────────────────
@@ -288,6 +361,32 @@ class RecordControllerTest {
                     .andExpect(status().isOk())
                     .andExpect(jsonPath("$.title").value("수정된 제목"))
                     .andExpect(jsonPath("$.content").value("내용"));
+        }
+
+        @Test
+        void 장소_필드_중_일부만_보내면_400을_반환한다() throws Exception {
+            TravelRecord record = saveRecord(1L, "원래 제목", LocalDate.of(2026, 8, 9));
+            String body = objectMapper.writeValueAsString(Map.of("latitude", 37.5512));
+
+            mockMvc.perform(patch("/api/records/" + record.getId())
+                            .header(HttpHeaders.AUTHORIZATION, bearerToken(1L))
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content(body))
+                    .andExpect(status().isBadRequest());
+        }
+
+        @Test
+        void 장소_필드를_모두_보내면_장소가_갱신된다() throws Exception {
+            TravelRecord record = saveRecord(1L, "원래 제목", LocalDate.of(2026, 8, 9));
+            String body = objectMapper.writeValueAsString(Map.of(
+                    "placeName", "서울 남산타워", "latitude", 37.5512, "longitude", 126.9882));
+
+            mockMvc.perform(patch("/api/records/" + record.getId())
+                            .header(HttpHeaders.AUTHORIZATION, bearerToken(1L))
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content(body))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.placeName").value("서울 남산타워"));
         }
 
         @Test

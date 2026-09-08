@@ -15,6 +15,7 @@ import duribun.be.domain.record.entity.Weather;
 import duribun.be.domain.record.repository.RecordImageRepository;
 import duribun.be.domain.record.repository.RecordRepository;
 import duribun.be.global.exception.InvalidImageExtensionException;
+import duribun.be.global.exception.InvalidPlaceException;
 import duribun.be.global.exception.RecordForbiddenException;
 import duribun.be.global.exception.RecordNotFoundException;
 import org.junit.jupiter.api.BeforeEach;
@@ -71,6 +72,14 @@ class RecordServiceTest {
                 "부산 여행", "자갈치시장 방문", imageUrls,
                 LocalDate.of(2026, 8, 9), "부산 자갈치시장",
                 35.0968, 129.0306, Weather.CLEAR, 24, Mood.HAPPY
+        );
+    }
+
+    private CreateRecordRequest createRequestWithPlace(String placeName, Double latitude, Double longitude) {
+        return new CreateRecordRequest(
+                "부산 여행", "자갈치시장 방문", null,
+                LocalDate.of(2026, 8, 9), placeName,
+                latitude, longitude, Weather.CLEAR, 24, Mood.HAPPY
         );
     }
 
@@ -144,6 +153,85 @@ class RecordServiceTest {
             assertThat(captor.getValue().get(1).getSortOrder()).isEqualTo(1);
             assertThat(response.imageUrls()).containsExactly("https://a.jpg", "https://b.jpg");
         }
+
+        @Test
+        void 사진_URL_목록이_빈_배열이면_사진_없이_저장된다() {
+            TravelRecord saved = recordWithId(1L, 1L);
+            when(recordRepository.save(any(TravelRecord.class))).thenReturn(saved);
+
+            RecordResponse response = recordService.createRecord(1L, createRequest(List.of()));
+
+            verify(recordImageRepository, never()).saveAll(any());
+            assertThat(response.imageUrls()).isEmpty();
+        }
+    }
+
+    // ── 장소(placeName/latitude/longitude) 검증 ───────────────────────────────
+
+    @Nested
+    class 장소_검증 {
+
+        @Test
+        void 장소_필드가_모두_없으면_장소_없는_기록으로_저장된다() {
+            when(recordRepository.save(any(TravelRecord.class))).thenAnswer(inv -> {
+                TravelRecord record = inv.getArgument(0);
+                TestEntityUtils.setId(record, 1L);
+                return record;
+            });
+
+            RecordResponse response = recordService.createRecord(1L, createRequestWithPlace(null, null, null));
+
+            assertThat(response.placeName()).isNull();
+            assertThat(response.latitude()).isNull();
+            assertThat(response.longitude()).isNull();
+        }
+
+        @Test
+        void 장소_필드가_모두_있으면_정상_생성된다() {
+            when(recordRepository.save(any(TravelRecord.class))).thenAnswer(inv -> {
+                TravelRecord record = inv.getArgument(0);
+                TestEntityUtils.setId(record, 1L);
+                return record;
+            });
+
+            RecordResponse response = recordService.createRecord(1L,
+                    createRequestWithPlace("부산 자갈치시장", 35.0968, 129.0306));
+
+            assertThat(response.placeName()).isEqualTo("부산 자갈치시장");
+            assertThat(response.latitude()).isEqualTo(35.0968);
+        }
+
+        @ParameterizedTest(name = "placeName={0}, latitude={1}, longitude={2} 이면 예외")
+        @MethodSource("duribun.be.domain.record.service.RecordServiceTest#partialPlaceCombinations")
+        void 장소_필드가_일부만_있으면_생성시_InvalidPlaceException을_던진다(String placeName, Double latitude, Double longitude) {
+            assertThatThrownBy(() -> recordService.createRecord(1L, createRequestWithPlace(placeName, latitude, longitude)))
+                    .isInstanceOf(InvalidPlaceException.class);
+
+            verify(recordRepository, never()).save(any());
+        }
+
+        @ParameterizedTest(name = "placeName={0}, latitude={1}, longitude={2} 이면 수정시 예외")
+        @MethodSource("duribun.be.domain.record.service.RecordServiceTest#partialPlaceCombinations")
+        void 장소_필드가_일부만_있으면_수정시_InvalidPlaceException을_던진다(String placeName, Double latitude, Double longitude) {
+            UpdateRecordRequest request = new UpdateRecordRequest(
+                    null, null, null, null, placeName, latitude, longitude, null, null, null);
+
+            assertThatThrownBy(() -> recordService.updateRecord(1L, 1L, request))
+                    .isInstanceOf(InvalidPlaceException.class);
+
+            verify(recordRepository, never()).findById(any());
+        }
+    }
+
+    static Stream<Arguments> partialPlaceCombinations() {
+        return Stream.of(
+                Arguments.of("부산 자갈치시장", null, null),
+                Arguments.of(null, 35.0968, null),
+                Arguments.of(null, null, 129.0306),
+                Arguments.of("부산 자갈치시장", 35.0968, null),
+                Arguments.of("부산 자갈치시장", null, 129.0306),
+                Arguments.of(null, 35.0968, 129.0306)
+        );
     }
 
     // ── 내 기록 목록 조회 ───────────────────────────────────────────────────────
@@ -215,6 +303,17 @@ class RecordServiceTest {
 
             assertThat(result).extracting(RecordSummaryResponse::id)
                     .containsExactly(3L, 2L, 1L);
+        }
+
+        @Test
+        void 사진이_없는_기록은_thumbnailUrl이_null이다() {
+            TravelRecord record = recordWithId(1L, 1L);
+            when(recordRepository.findByUserIdOrderByVisitedAtAsc(1L)).thenReturn(List.of(record));
+            when(recordImageRepository.findByRecordIdInOrderByRecordIdAscSortOrderAsc(any())).thenReturn(List.of());
+
+            List<RecordSummaryResponse> result = recordService.getMyRecords(1L, null, null);
+
+            assertThat(result.get(0).thumbnailUrl()).isNull();
         }
     }
 
@@ -289,6 +388,20 @@ class RecordServiceTest {
         }
 
         @Test
+        void 장소_필드를_모두_함께_보내면_장소가_갱신된다() {
+            TravelRecord record = recordWithId(1L, 1L);
+            when(recordRepository.findById(1L)).thenReturn(Optional.of(record));
+            when(recordImageRepository.findByRecordIdOrderBySortOrderAsc(1L)).thenReturn(List.of());
+
+            RecordResponse response = recordService.updateRecord(1L, 1L,
+                    new UpdateRecordRequest(null, null, null, null, "서울 남산타워", 37.5512, 126.9882, null, null, null));
+
+            assertThat(response.placeName()).isEqualTo("서울 남산타워");
+            assertThat(response.latitude()).isEqualTo(37.5512);
+            assertThat(response.longitude()).isEqualTo(126.9882);
+        }
+
+        @Test
         void 사진_목록이_전달되면_기존_사진을_지우고_새로_저장한다() {
             TravelRecord record = recordWithId(1L, 1L);
             when(recordRepository.findById(1L)).thenReturn(Optional.of(record));
@@ -300,6 +413,18 @@ class RecordServiceTest {
             ArgumentCaptor<List<RecordImage>> captor = ArgumentCaptor.forClass(List.class);
             verify(recordImageRepository).saveAll(captor.capture());
             assertThat(captor.getValue()).hasSize(1);
+        }
+
+        @Test
+        void 사진_목록을_빈_배열로_보내면_사진이_모두_제거된다() {
+            TravelRecord record = recordWithId(1L, 1L);
+            when(recordRepository.findById(1L)).thenReturn(Optional.of(record));
+
+            recordService.updateRecord(1L, 1L,
+                    new UpdateRecordRequest(null, null, List.of(), null, null, null, null, null, null, null));
+
+            verify(recordImageRepository).deleteByRecordId(1L);
+            verify(recordImageRepository, never()).saveAll(any());
         }
 
         @Test
