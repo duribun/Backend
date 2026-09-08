@@ -12,6 +12,7 @@ import duribun.be.domain.record.entity.TravelRecord;
 import duribun.be.domain.record.repository.RecordImageRepository;
 import duribun.be.domain.record.repository.RecordRepository;
 import duribun.be.global.exception.InvalidImageExtensionException;
+import duribun.be.global.exception.InvalidPlaceException;
 import duribun.be.global.exception.RecordForbiddenException;
 import duribun.be.global.exception.RecordNotFoundException;
 import org.springframework.stereotype.Service;
@@ -57,6 +58,7 @@ public class RecordService {
     }
 
     public RecordResponse createRecord(Long userId, CreateRecordRequest request) {
+        validatePlaceConsistency(request.placeName(), request.latitude(), request.longitude());
         TravelRecord record = TravelRecord.create(
                 userId,
                 request.title(),
@@ -91,6 +93,7 @@ public class RecordService {
     }
 
     public RecordResponse updateRecord(Long userId, Long recordId, UpdateRecordRequest request) {
+        validatePlaceConsistency(request.placeName(), request.latitude(), request.longitude());
         TravelRecord record = findRecord(recordId);
         validateOwner(record, userId);
         record.update(request.title(), request.content(), request.visitedAt(), request.placeName(),
@@ -183,6 +186,21 @@ public class RecordService {
         }
         recordImageRepository.saveAll(images);
         return imageUrls;
+    }
+
+    /**
+     * placeName/latitude/longitude는 장소를 등록하지 않은 기록(사진만/글만 있는 기록)을 허용하기 위해
+     * 개별 필드로는 optional이지만, "셋 다 없거나(장소 미등록) 셋 다 있거나(장소 등록)"만 유효하다.
+     * 위도/경도는 함께 있어야만 장소가 특정되는 값이라 하나만 오는 상태는 의미가 없기 때문이다.
+     */
+    private void validatePlaceConsistency(String placeName, Double latitude, Double longitude) {
+        boolean hasPlaceName = placeName != null && !placeName.isBlank();
+        boolean hasLatitude = latitude != null;
+        boolean hasLongitude = longitude != null;
+        int presentCount = (hasPlaceName ? 1 : 0) + (hasLatitude ? 1 : 0) + (hasLongitude ? 1 : 0);
+        if (presentCount != 0 && presentCount != 3) {
+            throw new InvalidPlaceException("장소명/위도/경도는 모두 입력하거나 모두 비워야 합니다.");
+        }
     }
 
     private TravelRecord findRecord(Long recordId) {
