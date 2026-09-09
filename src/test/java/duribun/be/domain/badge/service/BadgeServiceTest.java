@@ -196,4 +196,49 @@ class BadgeServiceTest {
         assertThat(responses).hasSize(1);
         assertThat(responses.get(0).code()).isEqualTo("SEEDLING");
     }
+
+    @Test
+    void getMyBadges_응답에_requiredMascotCount가_포함된다() {
+        Badge beginner = badgeWithId(2L, "BEGINNER", "여행 입문자", 5);
+        UserBadge acquired = UserBadge.create(10L, 2L, java.time.LocalDateTime.now());
+        when(userBadgeRepository.findByUserId(10L)).thenReturn(List.of(acquired));
+        when(badgeRepository.findAllById(List.of(2L))).thenReturn(List.of(beginner));
+
+        var responses = badgeService.getMyBadges(10L);
+
+        assertThat(responses.get(0).requiredMascotCount()).isEqualTo(5);
+    }
+
+    @Test
+    void getMyBadges_requiredMascotCount_내림차순으로_정렬한다() {
+        Badge seedling = badgeWithId(1L, "SEEDLING", "여행 새싹", 0);
+        Badge beginner = badgeWithId(2L, "BEGINNER", "여행 입문자", 5);
+        Badge explorer = badgeWithId(3L, "EXPLORER", "여행 탐험가", 10);
+        UserBadge acquiredSeedling = UserBadge.create(10L, 1L, java.time.LocalDateTime.now());
+        UserBadge acquiredBeginner = UserBadge.create(10L, 2L, java.time.LocalDateTime.now());
+        UserBadge acquiredExplorer = UserBadge.create(10L, 3L, java.time.LocalDateTime.now());
+        when(userBadgeRepository.findByUserId(10L))
+                .thenReturn(List.of(acquiredSeedling, acquiredBeginner, acquiredExplorer));
+        when(badgeRepository.findAllById(List.of(1L, 2L, 3L)))
+                .thenReturn(List.of(seedling, beginner, explorer));
+
+        var responses = badgeService.getMyBadges(10L);
+
+        assertThat(responses).extracting("code").containsExactly("EXPLORER", "BEGINNER", "SEEDLING");
+    }
+
+    @Test
+    void getMyBadges_한번에_여러_배지를_동시에_획득해도_requiredMascotCount로_최고단계를_가려낼_수_있다() {
+        java.time.LocalDateTime sameInstant = java.time.LocalDateTime.of(2026, 8, 1, 0, 0);
+        Badge seedling = badgeWithId(1L, "SEEDLING", "여행 새싹", 0);
+        Badge beginner = badgeWithId(2L, "BEGINNER", "여행 입문자", 5);
+        UserBadge acquiredSeedling = UserBadge.create(10L, 1L, sameInstant);
+        UserBadge acquiredBeginner = UserBadge.create(10L, 2L, sameInstant);
+        when(userBadgeRepository.findByUserId(10L)).thenReturn(List.of(acquiredSeedling, acquiredBeginner));
+        when(badgeRepository.findAllById(List.of(1L, 2L))).thenReturn(List.of(seedling, beginner));
+
+        var responses = badgeService.getMyBadges(10L);
+
+        assertThat(responses.get(0).code()).isEqualTo("BEGINNER");
+    }
 }

@@ -101,7 +101,8 @@ class BadgeControllerTest {
                         .header(HttpHeaders.AUTHORIZATION, bearerToken(1L)))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.length()").value(1))
-                .andExpect(jsonPath("$[0].code").value("SEEDLING"));
+                .andExpect(jsonPath("$[0].code").value("SEEDLING"))
+                .andExpect(jsonPath("$[0].requiredMascotCount").value(0));
     }
 
     @Test

@@ -18,6 +18,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
@@ -70,6 +71,12 @@ public class BadgeService {
                 .toList();
     }
 
+    /**
+     * requiredMascotCount(등급 기준값) 내림차순으로 정렬해서 반환한다. 첫 항목이 곧 "현재 칭호"
+     * (가장 높은 단계)이다. 마스코트 획득 수 임계값을 한 번에 여러 개 넘겨 여러 칭호가 같은 시각에
+     * 부여된 경우 acquiredAt만으로는 최고 단계를 가려낼 수 없어서, 정렬 기준을 acquiredAt이 아닌
+     * requiredMascotCount로 둔다.
+     */
     public List<MyBadgeResponse> getMyBadges(Long userId) {
         List<UserBadge> userBadges = userBadgeRepository.findByUserId(userId);
         Map<Long, Badge> badgesById = badgeRepository
@@ -79,6 +86,7 @@ public class BadgeService {
 
         return userBadges.stream()
                 .map(userBadge -> MyBadgeResponse.of(badgesById.get(userBadge.getBadgeId()), userBadge))
+                .sorted(Comparator.comparing(MyBadgeResponse::requiredMascotCount).reversed())
                 .toList();
     }
 
