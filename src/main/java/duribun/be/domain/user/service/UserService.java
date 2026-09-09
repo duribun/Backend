@@ -34,6 +34,12 @@ public class UserService {
         user.withdraw();
     }
 
+    @Transactional(readOnly = true)
+    public User getMyProfile(Long userId) {
+        return userRepository.findById(userId)
+                .orElseThrow(() -> new UserNotFoundException("인증된 사용자를 찾을 수 없습니다: " + userId));
+    }
+
     public boolean isNicknameAvailable(Long userId, String nickname) {
         validateNicknameFormat(nickname);
         return !userRepository.existsByNicknameAndIdNot(nickname, userId);

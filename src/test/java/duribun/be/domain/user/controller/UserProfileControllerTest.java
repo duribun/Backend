@@ -69,6 +69,12 @@ class UserProfileControllerTest {
     }
 
     @Test
+    void me_GET은_인증되지_않으면_401을_반환한다() throws Exception {
+        mockMvc.perform(get("/api/users/me"))
+                .andExpect(status().isUnauthorized());
+    }
+
+    @Test
     void nicknameCheck_사용가능한_닉네임이면_available_true를_반환한다() throws Exception {
         Long userId = saveUser("pid-nc-1", "기존닉네임");
 
@@ -110,6 +116,23 @@ class UserProfileControllerTest {
                         .header(HttpHeaders.AUTHORIZATION, bearerToken(userId))
                         .param("nickname", "a"))
                 .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    void me_GET은_인증된_유저의_프로필을_반환한다() throws Exception {
+        Long userId = saveUser("pid-me-1", "내프로필닉네임");
+        mockMvc.perform(patch("/api/users/me/profile")
+                        .header(HttpHeaders.AUTHORIZATION, bearerToken(userId))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(new ProfileBody("내프로필닉네임", LocalDate.of(1998, 5, 20), Gender.MALE))))
+                .andExpect(status().isOk());
+
+        mockMvc.perform(get("/api/users/me")
+                        .header(HttpHeaders.AUTHORIZATION, bearerToken(userId)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.nickname").value("내프로필닉네임"))
+                .andExpect(jsonPath("$.birthDate").value("1998-05-20"))
+                .andExpect(jsonPath("$.gender").value("MALE"));
     }
 
     @Test

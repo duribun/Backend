@@ -74,6 +74,24 @@ class UserServiceTest {
     }
 
     @Test
+    void getMyProfile_존재하는_유저면_해당_유저를_반환한다() {
+        User user = activeUser();
+        when(userRepository.findById(1L)).thenReturn(Optional.of(user));
+
+        User result = userService.getMyProfile(1L);
+
+        assertThat(result).isEqualTo(user);
+    }
+
+    @Test
+    void getMyProfile_존재하지_않는_유저면_예외를_던진다() {
+        when(userRepository.findById(1L)).thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> userService.getMyProfile(1L))
+                .isInstanceOf(UserNotFoundException.class);
+    }
+
+    @Test
     void isNicknameAvailable_형식이_올바르지_않으면_예외를_던진다() {
         assertThatThrownBy(() -> userService.isNicknameAvailable(1L, "a"))
                 .isInstanceOf(InvalidNicknameException.class);
