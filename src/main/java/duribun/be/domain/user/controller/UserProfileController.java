@@ -31,6 +31,12 @@ public class UserProfileController {
         return ResponseEntity.ok(NicknameCheckResponse.of(userService.isNicknameAvailable(userId, nickname)));
     }
 
+    @GetMapping("/me")
+    public ResponseEntity<ProfileUpdateResponse> getMyProfile(@AuthenticationPrincipal Long userId) {
+        User user = userService.getMyProfile(userId);
+        return ResponseEntity.ok(ProfileUpdateResponse.from(user));
+    }
+
     @PatchMapping("/me/profile")
     public ResponseEntity<ProfileUpdateResponse> updateProfile(@AuthenticationPrincipal Long userId,
                                                                 @Valid @RequestBody ProfileUpdateRequest request) {
