@@ -3,6 +3,7 @@ package duribun.be.domain.user.controller;
 import duribun.be.domain.user.dto.NicknameCheckResponse;
 import duribun.be.domain.user.dto.ProfileUpdateRequest;
 import duribun.be.domain.user.dto.ProfileUpdateResponse;
+import duribun.be.domain.user.dto.UserProfileResponse;
 import duribun.be.domain.user.entity.User;
 import duribun.be.domain.user.service.UserService;
 import jakarta.validation.Valid;
@@ -32,9 +33,9 @@ public class UserProfileController {
     }
 
     @GetMapping("/me")
-    public ResponseEntity<ProfileUpdateResponse> getMyProfile(@AuthenticationPrincipal Long userId) {
+    public ResponseEntity<UserProfileResponse> getMyProfile(@AuthenticationPrincipal Long userId) {
         User user = userService.getMyProfile(userId);
-        return ResponseEntity.ok(ProfileUpdateResponse.from(user));
+        return ResponseEntity.ok(UserProfileResponse.from(user));
     }
 
     @PatchMapping("/me/profile")
