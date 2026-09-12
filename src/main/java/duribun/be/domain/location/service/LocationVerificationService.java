@@ -1,5 +1,6 @@
 package duribun.be.domain.location.service;
 
+import duribun.be.domain.location.dto.NewlyAcquiredMascotResponse;
 import duribun.be.domain.location.dto.RegionResponse;
 import duribun.be.domain.location.dto.VerifyLocationRequest;
 import duribun.be.domain.location.dto.VerifyLocationResponse;
@@ -53,14 +54,15 @@ public class LocationVerificationService {
                 request.latitude(), request.longitude());
 
         if (distance > region.getVerificationRadiusMeters()) {
-            return new VerifyLocationResponse(false, false, region.getId(), region.getName(), distance);
+            return new VerifyLocationResponse(false, false, region.getId(), region.getName(), distance, List.of());
         }
 
         boolean isFirstVisit = visitRecordRepository.findByUserIdAndRegionId(userId, region.getId()).isEmpty();
+        List<NewlyAcquiredMascotResponse> newlyAcquiredMascots = List.of();
         if (isFirstVisit) {
             try {
                 visitRecordRepository.save(VisitRecord.create(userId, region.getId(), LocalDateTime.now()));
-                eventPublisher.publishEvent(new LocationVerifiedEvent(userId, region.getId(), true));
+                newlyAcquiredMascots = publishAndCollectNewlyAcquiredMascots(userId, region.getId());
             } catch (DataIntegrityViolationException e) {
                 // 동시에 같은 유저·지역의 방문 기록이 먼저 생성된 경우: 재방문으로 취급한다
                 isFirstVisit = visitRecordRepository.findByUserIdAndRegionId(userId, region.getId()).isEmpty();
@@ -70,7 +72,21 @@ public class LocationVerificationService {
             }
         }
 
-        return new VerifyLocationResponse(true, isFirstVisit, region.getId(), region.getName(), distance);
+        return new VerifyLocationResponse(true, isFirstVisit, region.getId(), region.getName(), distance, newlyAcquiredMascots);
+    }
+
+    /**
+     * LocationVerifiedEvent를 발행하고, 동기 리스너(mascot 도메인) 처리가 끝난 뒤
+     * 이번 호출로 새로 지급된 마스코트 정보를 응답용 DTO로 변환해 돌려준다.
+     * 이벤트 리스너는 기본적으로 동기 실행되므로(별도 @Async 없음), publishEvent가
+     * 반환되는 시점에는 마스코트 지급(해당된다면)까지 이미 완료된 상태다.
+     */
+    private List<NewlyAcquiredMascotResponse> publishAndCollectNewlyAcquiredMascots(Long userId, Long regionId) {
+        LocationVerifiedEvent event = new LocationVerifiedEvent(userId, regionId, true);
+        eventPublisher.publishEvent(event);
+        return event.newlyAcquiredMascots().stream()
+                .map(NewlyAcquiredMascotResponse::from)
+                .toList();
     }
 
     @Transactional(readOnly = true)
