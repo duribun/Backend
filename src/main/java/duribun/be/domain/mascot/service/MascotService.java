@@ -8,6 +8,7 @@ import duribun.be.domain.mascot.event.MascotAcquiredEvent;
 import duribun.be.domain.mascot.repository.MascotRepository;
 import duribun.be.domain.mascot.repository.UserMascotRepository;
 import duribun.be.domain.location.event.LocationVerifiedEvent;
+import duribun.be.domain.location.event.NewlyAcquiredMascotInfo;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.context.event.EventListener;
 import org.springframework.dao.DataIntegrityViolationException;
@@ -46,6 +47,8 @@ public class MascotService {
                 .filter(mascot -> !userMascotRepository.existsByUserIdAndMascotId(event.userId(), mascot.getId()))
                 .ifPresent(mascot -> {
                     grantMascot(event.userId(), mascot.getId());
+                    event.addNewlyAcquiredMascot(
+                            new NewlyAcquiredMascotInfo(mascot.getId(), mascot.getName(), mascot.getImageUrl()));
                     eventPublisher.publishEvent(
                             new MascotAcquiredEvent(event.userId(), mascot.getId(), event.regionId()));
                 });
