@@ -32,12 +32,14 @@ class SettingServiceTest {
     private UserService userService;
     @Mock
     private AuthService authService;
+    @Mock
+    private AccountResetService accountResetService;
 
     private SettingService settingService;
 
     @BeforeEach
     void setUp() {
-        settingService = new SettingService(userSettingRepository, userService, authService);
+        settingService = new SettingService(userSettingRepository, userService, authService, accountResetService);
     }
 
     @Test
@@ -89,11 +91,12 @@ class SettingServiceTest {
     }
 
     @Test
-    void withdraw_UserService와_AuthService를_순서대로_호출한다() {
+    void withdraw_UserService_AccountResetService_AuthService를_순서대로_호출한다() {
         WithdrawResponse response = settingService.withdraw(1L);
 
-        InOrder inOrder = inOrder(userService, authService);
+        InOrder inOrder = inOrder(userService, accountResetService, authService);
         inOrder.verify(userService).withdraw(1L);
+        inOrder.verify(accountResetService).resetUserData(1L);
         inOrder.verify(authService).revokeAllTokens(1L);
         assertThat(response.status()).isEqualTo("WITHDRAWN");
     }
