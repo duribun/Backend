@@ -54,8 +54,8 @@ class UserItemEquippedCategoryConstraintIntegrationTest {
     @Test
     void 서비스를_거치지_않고_직접_저장해도_같은_카테고리를_두_개_이상_착용_상태로_둘_수_없다() {
         Long userId = 1L;
-        Item item1 = itemRepository.saveAndFlush(Item.create("선글라스1", "설명", 500, null, ItemCategory.GLASSES));
-        Item item2 = itemRepository.saveAndFlush(Item.create("선글라스2", "설명", 500, null, ItemCategory.GLASSES));
+        Item item1 = itemRepository.saveAndFlush(Item.create("선글라스1", "설명", 500, null, ItemCategory.ACCESSORY));
+        Item item2 = itemRepository.saveAndFlush(Item.create("선글라스2", "설명", 500, null, ItemCategory.ACCESSORY));
 
         UserItem userItem1 = UserItem.create(userId, item1.getId(), item1.getCategory(), LocalDateTime.now());
         userItem1.equip();

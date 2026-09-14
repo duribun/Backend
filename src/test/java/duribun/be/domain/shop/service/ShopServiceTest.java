@@ -80,8 +80,8 @@ class ShopServiceTest {
 
         @Test
         void 전체_아이템_목록을_반환한다() {
-            Item item1 = itemWithId(1L, ItemCategory.GLASSES);
-            Item item2 = itemWithId(2L, ItemCategory.BAG);
+            Item item1 = itemWithId(1L, ItemCategory.ACCESSORY);
+            Item item2 = itemWithId(2L, ItemCategory.ACCESSORY);
             when(itemRepository.findAll()).thenReturn(List.of(item1, item2));
 
             List<ItemResponse> result = shopService.getAllItems();
@@ -106,8 +106,8 @@ class ShopServiceTest {
 
         @Test
         void 구매한_아이템의_착용여부를_포함해_반환한다() {
-            Item item = itemWithId(1L, ItemCategory.GLASSES);
-            UserItem userItem = userItemWithId(10L, 1L, 1L, ItemCategory.GLASSES);
+            Item item = itemWithId(1L, ItemCategory.ACCESSORY);
+            UserItem userItem = userItemWithId(10L, 1L, 1L, ItemCategory.ACCESSORY);
             userItem.equip();
             when(userItemRepository.findByUserId(1L)).thenReturn(List.of(userItem));
             when(itemRepository.findAllById(List.of(1L))).thenReturn(List.of(item));
@@ -129,9 +129,9 @@ class ShopServiceTest {
 
         @Test
         void 보유한_아이템이_items_테이블에서_삭제됐으면_해당_항목을_제외하고_반환한다() {
-            Item remainingItem = itemWithId(1L, ItemCategory.GLASSES);
-            UserItem deletedItemUserItem = userItemWithId(10L, 1L, 999L, ItemCategory.BAG);
-            UserItem remainingUserItem = userItemWithId(20L, 1L, 1L, ItemCategory.GLASSES);
+            Item remainingItem = itemWithId(1L, ItemCategory.ACCESSORY);
+            UserItem deletedItemUserItem = userItemWithId(10L, 1L, 999L, ItemCategory.ACCESSORY);
+            UserItem remainingUserItem = userItemWithId(20L, 1L, 1L, ItemCategory.ACCESSORY);
             when(userItemRepository.findByUserId(1L)).thenReturn(List.of(deletedItemUserItem, remainingUserItem));
             when(itemRepository.findAllById(List.of(999L, 1L))).thenReturn(List.of(remainingItem));
 
@@ -149,7 +149,7 @@ class ShopServiceTest {
 
         @Test
         void 구매시_포인트가_차감되고_UserItem이_저장된다() {
-            Item item = itemWithId(1L, ItemCategory.GLASSES);
+            Item item = itemWithId(1L, ItemCategory.ACCESSORY);
             when(itemRepository.findById(1L)).thenReturn(Optional.of(item));
             when(userItemRepository.existsByUserIdAndItemId(1L, 1L)).thenReturn(false);
             when(pointService.getBalance(1L)).thenReturn(500);
@@ -162,7 +162,7 @@ class ShopServiceTest {
 
         @Test
         void 구매시_purchasedAt이_TimeProvider의_현재시간으로_설정된다() {
-            Item item = itemWithId(1L, ItemCategory.GLASSES);
+            Item item = itemWithId(1L, ItemCategory.ACCESSORY);
             when(itemRepository.findById(1L)).thenReturn(Optional.of(item));
             when(userItemRepository.existsByUserIdAndItemId(1L, 1L)).thenReturn(false);
             when(pointService.getBalance(1L)).thenReturn(500);
@@ -176,7 +176,7 @@ class ShopServiceTest {
 
         @Test
         void 구매_성공시_아이템id와_잔여포인트를_응답에_포함한다() {
-            Item item = itemWithId(1L, ItemCategory.GLASSES);
+            Item item = itemWithId(1L, ItemCategory.ACCESSORY);
             when(itemRepository.findById(1L)).thenReturn(Optional.of(item));
             when(userItemRepository.existsByUserIdAndItemId(1L, 1L)).thenReturn(false);
             when(pointService.getBalance(1L)).thenReturn(700);
@@ -200,7 +200,7 @@ class ShopServiceTest {
 
         @Test
         void 이미_구매한_아이템_재구매시_AlreadyPurchasedException을_던진다() {
-            Item item = itemWithId(1L, ItemCategory.BAG);
+            Item item = itemWithId(1L, ItemCategory.ACCESSORY);
             when(itemRepository.findById(1L)).thenReturn(Optional.of(item));
             when(userItemRepository.existsByUserIdAndItemId(1L, 1L)).thenReturn(true);
 
@@ -214,7 +214,7 @@ class ShopServiceTest {
 
         @Test
         void 포인트_부족시_UserItem을_저장하지_않는다() {
-            Item item = itemWithId(1L, ItemCategory.CARRIER);
+            Item item = itemWithId(1L, ItemCategory.ACCESSORY);
             when(itemRepository.findById(1L)).thenReturn(Optional.of(item));
             when(userItemRepository.existsByUserIdAndItemId(1L, 1L)).thenReturn(false);
             doThrow(new InsufficientPointException("포인트 잔액이 부족합니다."))
@@ -229,7 +229,7 @@ class ShopServiceTest {
 
         @Test
         void 동시_중복_구매로_유니크_제약이_위반되면_AlreadyPurchasedException을_던진다() {
-            Item item = itemWithId(1L, ItemCategory.GLASSES);
+            Item item = itemWithId(1L, ItemCategory.ACCESSORY);
             when(itemRepository.findById(1L)).thenReturn(Optional.of(item));
             when(userItemRepository.existsByUserIdAndItemId(1L, 1L)).thenReturn(false);
             when(userItemRepository.save(any(UserItem.class)))
@@ -248,10 +248,10 @@ class ShopServiceTest {
 
         @Test
         void 미착용_아이템을_착용하면_isEquipped가_true가_된다() {
-            Item item = itemWithId(1L, ItemCategory.GLASSES);
-            UserItem userItem = userItemWithId(10L, 1L, 1L, ItemCategory.GLASSES);
+            Item item = itemWithId(1L, ItemCategory.ACCESSORY);
+            UserItem userItem = userItemWithId(10L, 1L, 1L, ItemCategory.ACCESSORY);
             when(itemRepository.findById(1L)).thenReturn(Optional.of(item));
-            when(userItemRepository.findByUserIdAndCategoryForUpdate(1L, ItemCategory.GLASSES)).thenReturn(List.of(userItem));
+            when(userItemRepository.findByUserIdAndCategoryForUpdate(1L, ItemCategory.ACCESSORY)).thenReturn(List.of(userItem));
 
             EquipResponse response = shopService.toggleEquip(1L, 1L);
 
@@ -294,7 +294,7 @@ class ShopServiceTest {
         @Test
         void 다른_카테고리_착용중인_아이템은_그대로_유지된다() {
             Item hat = itemWithId(2L, ItemCategory.HAT);
-            UserItem equippedGlasses = userItemWithId(10L, 1L, 1L, ItemCategory.GLASSES);
+            UserItem equippedGlasses = userItemWithId(10L, 1L, 1L, ItemCategory.ACCESSORY);
             equippedGlasses.equip();
             UserItem newHat = userItemWithId(20L, 1L, 2L, ItemCategory.HAT);
 
@@ -318,9 +318,9 @@ class ShopServiceTest {
 
         @Test
         void 미구매_아이템이면_ItemNotOwnedException을_던진다() {
-            Item item = itemWithId(1L, ItemCategory.BAG);
+            Item item = itemWithId(1L, ItemCategory.ACCESSORY);
             when(itemRepository.findById(1L)).thenReturn(Optional.of(item));
-            when(userItemRepository.findByUserIdAndCategoryForUpdate(1L, ItemCategory.BAG)).thenReturn(List.of());
+            when(userItemRepository.findByUserIdAndCategoryForUpdate(1L, ItemCategory.ACCESSORY)).thenReturn(List.of());
 
             assertThatThrownBy(() -> shopService.toggleEquip(1L, 1L))
                     .isInstanceOf(ItemNotOwnedException.class)

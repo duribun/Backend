@@ -97,8 +97,8 @@ class ShopControllerTest {
 
         @Test
         void 전체_아이템_목록을_조회한다() throws Exception {
-            saveItem("여행자 선글라스", 500, ItemCategory.GLASSES);
-            saveItem("등산 배낭", 600, ItemCategory.BAG);
+            saveItem("여행자 선글라스", 500, ItemCategory.ACCESSORY);
+            saveItem("등산 배낭", 600, ItemCategory.ACCESSORY);
 
             mockMvc.perform(get("/api/shop/items")
                             .header(HttpHeaders.AUTHORIZATION, bearerToken(1L)))
@@ -114,7 +114,7 @@ class ShopControllerTest {
 
         @Test
         void 다른_유저의_아이템은_섞이지_않고_본인것만_반환한다() throws Exception {
-            Item item = saveItem("선글라스", 500, ItemCategory.GLASSES);
+            Item item = saveItem("선글라스", 500, ItemCategory.ACCESSORY);
             saveUserItem(1L, item);
             saveUserItem(2L, item);
 
@@ -132,7 +132,7 @@ class ShopControllerTest {
 
         @Test
         void 구매_성공시_200과_잔여포인트를_반환한다() throws Exception {
-            Item item = saveItem("선글라스", 500, ItemCategory.GLASSES);
+            Item item = saveItem("선글라스", 500, ItemCategory.ACCESSORY);
             pointService.earn(1L, 1000, PointReason.MASCOT_COLLECT);
 
             mockMvc.perform(post("/api/shop/items/" + item.getId() + "/purchase")
@@ -154,7 +154,7 @@ class ShopControllerTest {
 
         @Test
         void 이미_구매한_아이템_재구매시_409를_반환한다() throws Exception {
-            Item item = saveItem("선글라스", 500, ItemCategory.GLASSES);
+            Item item = saveItem("선글라스", 500, ItemCategory.ACCESSORY);
             pointService.earn(1L, 2000, PointReason.MASCOT_COLLECT);
             saveUserItem(1L, item);
 
@@ -168,7 +168,7 @@ class ShopControllerTest {
 
         @Test
         void 포인트가_부족하면_409를_반환한다() throws Exception {
-            Item item = saveItem("비싼 캐리어", 9999, ItemCategory.CARRIER);
+            Item item = saveItem("비싼 캐리어", 9999, ItemCategory.ACCESSORY);
 
             mockMvc.perform(post("/api/shop/items/" + item.getId() + "/purchase")
                             .header(HttpHeaders.AUTHORIZATION, bearerToken(1L)))
@@ -186,7 +186,7 @@ class ShopControllerTest {
 
         @Test
         void 착용_성공시_isEquipped가_true를_반환한다() throws Exception {
-            Item item = saveItem("선글라스", 500, ItemCategory.GLASSES);
+            Item item = saveItem("선글라스", 500, ItemCategory.ACCESSORY);
             saveUserItem(1L, item);
 
             mockMvc.perform(patch("/api/shop/items/" + item.getId() + "/equip")
@@ -197,7 +197,7 @@ class ShopControllerTest {
 
         @Test
         void 착용_상태에서_재호출하면_isEquipped가_false를_반환한다() throws Exception {
-            Item item = saveItem("선글라스", 500, ItemCategory.GLASSES);
+            Item item = saveItem("선글라스", 500, ItemCategory.ACCESSORY);
             UserItem userItem = UserItem.create(1L, item.getId(), item.getCategory(), LocalDateTime.now());
             userItem.equip();
             userItemRepository.saveAndFlush(userItem);
@@ -210,7 +210,7 @@ class ShopControllerTest {
 
         @Test
         void 미구매_아이템_착용시_403을_반환한다() throws Exception {
-            Item item = saveItem("선글라스", 500, ItemCategory.GLASSES);
+            Item item = saveItem("선글라스", 500, ItemCategory.ACCESSORY);
 
             mockMvc.perform(patch("/api/shop/items/" + item.getId() + "/equip")
                             .header(HttpHeaders.AUTHORIZATION, bearerToken(1L)))
@@ -222,8 +222,8 @@ class ShopControllerTest {
 
         @Test
         void 같은_카테고리_다른_아이템_착용시_기존_착용_아이템이_해제된다() throws Exception {
-            Item item1 = saveItem("선글라스1", 500, ItemCategory.GLASSES);
-            Item item2 = saveItem("선글라스2", 800, ItemCategory.GLASSES);
+            Item item1 = saveItem("선글라스1", 500, ItemCategory.ACCESSORY);
+            Item item2 = saveItem("선글라스2", 800, ItemCategory.ACCESSORY);
 
             UserItem ui1 = UserItem.create(1L, item1.getId(), item1.getCategory(), LocalDateTime.now());
             ui1.equip();
