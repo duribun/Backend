@@ -11,4 +11,6 @@ public interface VisitRecordRepository extends JpaRepository<VisitRecord, Long> 
     Optional<VisitRecord> findByUserIdAndRegionId(Long userId, Long regionId);
 
     List<VisitRecord> findByUserId(Long userId);
+
+    void deleteByUserId(Long userId);
 }
