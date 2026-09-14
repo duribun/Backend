@@ -32,6 +32,7 @@ public class UserService {
             throw new AlreadyWithdrawnUserException("이미 탈퇴한 사용자입니다");
         }
         user.withdraw();
+        user.resetProfile();
     }
 
     @Transactional(readOnly = true)
