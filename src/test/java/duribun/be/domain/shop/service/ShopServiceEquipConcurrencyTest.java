@@ -37,8 +37,8 @@ class ShopServiceEquipConcurrencyTest {
     @Test
     void 같은_카테고리의_서로_다른_아이템을_동시에_착용해도_하나만_착용_상태로_남는다() throws InterruptedException {
         Long userId = 1L;
-        Item item1 = itemRepository.saveAndFlush(Item.create("선글라스1", "설명", 500, null, ItemCategory.GLASSES));
-        Item item2 = itemRepository.saveAndFlush(Item.create("선글라스2", "설명", 500, null, ItemCategory.GLASSES));
+        Item item1 = itemRepository.saveAndFlush(Item.create("선글라스1", "설명", 500, null, ItemCategory.ACCESSORY));
+        Item item2 = itemRepository.saveAndFlush(Item.create("선글라스2", "설명", 500, null, ItemCategory.ACCESSORY));
         userItemRepository.saveAndFlush(UserItem.create(userId, item1.getId(), item1.getCategory(), LocalDateTime.now()));
         userItemRepository.saveAndFlush(UserItem.create(userId, item2.getId(), item2.getCategory(), LocalDateTime.now()));
 
