@@ -45,7 +45,11 @@ public class AuthService {
         SocialUserInfo userInfo = client.getUserInfo(token);
 
         var existingUser = userRepository.findByProviderAndProviderId(provider, userInfo.providerId());
-        boolean isNewUser = existingUser.isEmpty();
+        // 탈퇴했다가 같은 소셜 계정으로 재로그인한 경우도 신규 유저로 취급한다 — User row는 소프트 삭제로
+        // 남아있지만(재가입 제약 때문에), 탈퇴 시 연관 데이터/프로필이 전부 초기화되므로(AccountResetService,
+        // User.resetProfile()) FE가 profile-setup(온보딩)부터 다시 밟게 해야 한다.
+        // reactivate() 호출로 상태가 바뀌기 "전에" isWithdrawn()을 먼저 판단해야 한다 — 순서 중요.
+        boolean isNewUser = existingUser.isEmpty() || existingUser.get().isWithdrawn();
         User user = existingUser.orElseGet(() -> userRepository.save(User.create(userInfo, provider)));
         if (user.isWithdrawn()) {
             user.reactivate();

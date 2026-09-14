@@ -96,4 +96,15 @@ public class User extends BaseTimeEntity {
         this.birthDate = birthDate;
         this.gender = gender;
     }
+
+    /**
+     * 탈퇴 시 프로필을 초기화한다 — 세 컬럼 모두 NOT NULL 제약이 없어 스키마 변경 없이 null로 되돌릴 수 있다.
+     * 같은 소셜 계정으로 재로그인하면(AuthService.login()) isNewUser=true로 다시 profile-setup(온보딩)부터
+     * 시작하게 되므로, 그 전까지 남아있던 이전 값이 잠깐이라도 노출되지 않도록 여기서 같이 지운다.
+     */
+    public void resetProfile() {
+        this.nickname = null;
+        this.birthDate = null;
+        this.gender = null;
+    }
 }

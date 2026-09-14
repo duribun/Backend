@@ -8,4 +8,6 @@ import java.util.Optional;
 public interface UserMascotCounterRepository extends JpaRepository<UserMascotCounter, Long> {
 
     Optional<UserMascotCounter> findByUserId(Long userId);
+
+    void deleteByUserId(Long userId);
 }

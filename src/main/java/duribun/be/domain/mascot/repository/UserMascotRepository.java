@@ -10,4 +10,6 @@ public interface UserMascotRepository extends JpaRepository<UserMascot, Long> {
     boolean existsByUserIdAndMascotId(Long userId, Long mascotId);
 
     List<UserMascot> findByUserId(Long userId);
+
+    void deleteByUserId(Long userId);
 }

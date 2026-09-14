@@ -18,13 +18,16 @@ public class SettingService {
     private final UserSettingRepository userSettingRepository;
     private final UserService userService;
     private final AuthService authService;
+    private final AccountResetService accountResetService;
 
     public SettingService(UserSettingRepository userSettingRepository,
                            UserService userService,
-                           AuthService authService) {
+                           AuthService authService,
+                           AccountResetService accountResetService) {
         this.userSettingRepository = userSettingRepository;
         this.userService = userService;
         this.authService = authService;
+        this.accountResetService = accountResetService;
     }
 
     public UserSettingResponse getMySetting(Long userId) {
@@ -39,6 +42,9 @@ public class SettingService {
 
     public WithdrawResponse withdraw(Long userId) {
         userService.withdraw(userId);
+        // 이 클래스가 클래스 레벨 @Transactional이라, 아래 두 호출과 위 withdraw()가 하나의 트랜잭션으로
+        // 묶여서 일부만 처리되고 실패하는 상황(예: 데이터는 지워졌는데 탈퇴 상태는 롤백)이 생기지 않는다.
+        accountResetService.resetUserData(userId);
         authService.revokeAllTokens(userId);
         return WithdrawResponse.from(UserStatus.WITHDRAWN);
     }
