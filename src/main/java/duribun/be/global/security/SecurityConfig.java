@@ -24,6 +24,7 @@ public class SecurityConfig {
             "/api/auth/**",
             "/api/locations/regions",
             "/api/map/**",
+            "/api/places/**",
             "/swagger-ui/**",
             "/swagger-ui.html",
             "/v3/api-docs/**",

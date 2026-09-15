@@ -59,12 +59,18 @@ public class TourApiClient {
         return callForList(query, TourApiItemResponse.class);
     }
 
+    /**
+     * 키워드 검색. contentTypeId가 null/blank면 쿼리에서 생략해 전체 콘텐츠 타입(관광지/음식점/숙박 등)을
+     * 대상으로 검색한다 - record 도메인의 "방문 장소 검색"(PlaceSearchService)이 이 경우를 사용한다.
+     * 관광지(12)로 한정해 캐싱하는 map 도메인(MapService.searchAttractions)은 기존대로 값을 넘긴다.
+     */
     public List<TourApiItemResponse> searchKeyword(String keyword, String contentTypeId) {
-        String query = commonQuery("/searchKeyword2")
-                + "&arrange=A"
-                + "&contentTypeId=" + encode(contentTypeId)
-                + "&keyword=" + encode(keyword);
-        return callForList(query, TourApiItemResponse.class);
+        StringBuilder query = new StringBuilder(commonQuery("/searchKeyword2")).append("&arrange=A");
+        if (contentTypeId != null && !contentTypeId.isBlank()) {
+            query.append("&contentTypeId=").append(encode(contentTypeId));
+        }
+        query.append("&keyword=").append(encode(keyword));
+        return callForList(query.toString(), TourApiItemResponse.class);
     }
 
     public Optional<TourApiDetailCommonResponse> detailCommon(String contentId) {
