@@ -106,6 +106,20 @@ class TourApiClientTest {
     }
 
     @Test
+    void searchKeyword_contentTypeId가_없으면_쿼리에서_생략된다() {
+        String url = commonQuery("/searchKeyword2") + "&arrange=A&keyword=%EA%B2%BD%ED%8F%AC%EB%8C%80";
+        mockServer.expect(requestTo(url))
+                .andRespond(withSuccess("""
+                        {"response":{"header":{"resultCode":"0000","resultMsg":"OK"},
+                        "body":{"items":"","numOfRows":10,"pageNo":1,"totalCount":0}}}
+                        """, MediaType.APPLICATION_JSON));
+
+        List<TourApiItemResponse> items = tourApiClient.searchKeyword("경포대", null);
+
+        assertThat(items).isEmpty();
+    }
+
+    @Test
     void locationBasedList_위경도와_반경을_쿼리에_담아_호출한다() {
         String url = commonQuery("/locationBasedList2") + "&arrange=E&contentTypeId=12&mapX=128.9&mapY=37.79&radius=5000";
         mockServer.expect(requestTo(url))
