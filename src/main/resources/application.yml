@@ -22,6 +22,12 @@ spring:
       minimum-idle: 6
       connection-timeout: 30000
 
+  # Flyway ---------------------------------------------------------
+  flyway:
+    enabled: true
+    baseline-on-migrate: true # 이미 Flyway 없이 만들어진 기존 dev DB에서도 에러 없이 인식하기 위함
+    baseline-version: 2 # 현재 V2까지가 기존 dev DB의 스키마+시드 데이터와 동일하므로, 그 지점을 기준으로 baseline
+
 # Utils Section ----------------------------------------------
 app:
   # 모바일 앱 대상이라 쿠키 기반 설정 없음. 필요 시(관리자 웹 등) 이 자리에 추가.
@@ -38,6 +44,18 @@ oauth2:
   naver:
     client-id: ${OAUTH_NAVER_CLIENT_ID}
     client-secret: ${OAUTH_NAVER_CLIENT_SECRET}
+
+# 한국관광공사 TourAPI 4.0 (KorService2) - map 도메인 관광지 정보 연동
+tour-api:
+  base-url: "${TOUR_API_BASE_URL:https://apis.data.go.kr/B551011/KorService2}"
+  service-key: ${TOUR_API_SERVICE_KEY:}
+
+# AWS S3 - 여행 기록(record) 도메인 사진 업로드. 자격증명은 SDK 기본 자격증명 체인(환경변수/IAM Role) 사용
+aws:
+  s3:
+    bucket: ${AWS_S3_BUCKET:}
+    region: ${AWS_REGION:ap-northeast-2}
+    presigned-url-expire-minutes: ${AWS_S3_PRESIGNED_URL_EXPIRE_MINUTES:10}
 
 # Swagger
 springdoc:

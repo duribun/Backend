@@ -4,6 +4,7 @@ import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.springframework.dao.OptimisticLockingFailureException;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
@@ -34,6 +35,8 @@ class GlobalExceptionHandlerTest {
     void InvalidSocialTokenException은_401을_반환한다() throws Exception {
         mockMvc.perform(get("/test/invalid-social-token"))
                 .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.status").value(401))
+                .andExpect(jsonPath("$.error").value("Unauthorized"))
                 .andExpect(jsonPath("$.message").value("소셜 토큰이 유효하지 않습니다"));
     }
 
@@ -49,6 +52,52 @@ class GlobalExceptionHandlerTest {
         mockMvc.perform(get("/test/invalid-refresh-token"))
                 .andExpect(status().isUnauthorized())
                 .andExpect(jsonPath("$.message").value("리프레시 토큰이 유효하지 않습니다"));
+    }
+
+    @Test
+    void RegionNotFoundException은_404를_반환한다() throws Exception {
+        mockMvc.perform(get("/test/region-not-found"))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.status").value(404))
+                .andExpect(jsonPath("$.error").value("Not Found"))
+                .andExpect(jsonPath("$.message").value("존재하지 않는 지역입니다"));
+    }
+
+    @Test
+    void InsufficientPointException은_409를_반환한다() throws Exception {
+        mockMvc.perform(get("/test/insufficient-point"))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.status").value(409))
+                .andExpect(jsonPath("$.error").value("Conflict"))
+                .andExpect(jsonPath("$.message").value("포인트 잔액이 부족합니다"));
+    }
+
+    @Test
+    void OptimisticLockingFailureException은_409를_반환한다() throws Exception {
+        mockMvc.perform(get("/test/optimistic-lock"))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.message").value("다른 요청에 의해 처리 중입니다. 잠시 후 다시 시도해주세요"));
+    }
+
+    @Test
+    void AttractionNotFoundException은_404를_반환한다() throws Exception {
+        mockMvc.perform(get("/test/attraction-not-found"))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.message").value("존재하지 않는 관광지입니다"));
+    }
+
+    @Test
+    void AlreadyWithdrawnUserException은_409를_반환한다() throws Exception {
+        mockMvc.perform(get("/test/already-withdrawn-user"))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.message").value("이미 탈퇴한 사용자입니다"));
+    }
+
+    @Test
+    void TourApiCallException은_502를_반환한다() throws Exception {
+        mockMvc.perform(get("/test/tour-api-call-failed"))
+                .andExpect(status().isBadGateway())
+                .andExpect(jsonPath("$.message").value("TourAPI 호출에 실패했습니다"));
     }
 
     @Test
@@ -77,6 +126,36 @@ class GlobalExceptionHandlerTest {
         @GetMapping("/invalid-refresh-token")
         public void invalidRefreshToken() {
             throw new InvalidRefreshTokenException("리프레시 토큰이 유효하지 않습니다");
+        }
+
+        @GetMapping("/region-not-found")
+        public void regionNotFound() {
+            throw new RegionNotFoundException("존재하지 않는 지역입니다");
+        }
+
+        @GetMapping("/insufficient-point")
+        public void insufficientPoint() {
+            throw new InsufficientPointException("포인트 잔액이 부족합니다");
+        }
+
+        @GetMapping("/optimistic-lock")
+        public void optimisticLock() {
+            throw new OptimisticLockingFailureException("stale version");
+        }
+
+        @GetMapping("/attraction-not-found")
+        public void attractionNotFound() {
+            throw new AttractionNotFoundException("존재하지 않는 관광지입니다");
+        }
+
+        @GetMapping("/tour-api-call-failed")
+        public void tourApiCallFailed() {
+            throw new TourApiCallException("TourAPI 호출에 실패했습니다");
+        }
+
+        @GetMapping("/already-withdrawn-user")
+        public void alreadyWithdrawnUser() {
+            throw new AlreadyWithdrawnUserException("이미 탈퇴한 사용자입니다");
         }
 
         @PostMapping("/validate")

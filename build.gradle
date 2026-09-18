@@ -28,8 +28,10 @@ dependencies {
     runtimeOnly 'org.postgresql:postgresql'
     annotationProcessor 'org.projectlombok:lombok'
 
-    // .env 파일을 Spring Environment에 자동 반영
-    implementation 'me.paulschwarz:spring-dotenv:4.0.0'
+    // Flyway - DB 마이그레이션
+    implementation 'org.springframework.boot:spring-boot-flyway'
+    implementation 'org.flywaydb:flyway-core'
+    implementation 'org.flywaydb:flyway-database-postgresql'
 
     // JWT
     implementation 'io.jsonwebtoken:jjwt-api:0.12.6'
@@ -45,11 +47,17 @@ dependencies {
     // Kakao/Naver 외부 API 호출용 RestClient.Builder 자동 구성
     implementation 'org.springframework.boot:spring-boot-starter-restclient'
 
+    // AWS S3 - 여행 기록 사진 업로드 (presigned URL 발급/삭제)
+    implementation 'software.amazon.awssdk:s3:2.29.52'
+
     testRuntimeOnly 'com.h2database:h2'
     testImplementation 'org.springframework.boot:spring-boot-starter-data-jpa-test'
     testImplementation 'org.springframework.boot:spring-boot-starter-security-test'
     testImplementation 'org.springframework.boot:spring-boot-starter-validation-test'
     testImplementation 'org.springframework.boot:spring-boot-starter-webmvc-test'
+    testImplementation 'org.springframework.boot:spring-boot-testcontainers'
+    testImplementation 'org.testcontainers:testcontainers-junit-jupiter'
+    testImplementation 'org.testcontainers:testcontainers-postgresql'
     testCompileOnly 'org.projectlombok:lombok'
     testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
     testAnnotationProcessor 'org.projectlombok:lombok'

@@ -1,0 +1,6 @@
+# docs/DEPLOY-AWS.md 참고. DOMAIN 환경변수(.env)에 적힌 호스트네임으로 접속하면
+# Caddy가 자동으로 Let's Encrypt 인증서를 발급/갱신하고, 8080의 backend 컨테이너로
+# 리버스 프록시한다. 인증서 관련 별도 설정이 필요 없는 게 Caddy를 쓰는 이유.
+{$DOMAIN} {
+	reverse_proxy backend:8080
+}

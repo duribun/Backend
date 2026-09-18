@@ -1,0 +1,13 @@
+package duribun.be.domain.point.repository;
+
+import duribun.be.domain.point.entity.PointAccount;
+import org.springframework.data.jpa.repository.JpaRepository;
+
+import java.util.Optional;
+
+public interface PointAccountRepository extends JpaRepository<PointAccount, Long> {
+
+    Optional<PointAccount> findByUserId(Long userId);
+
+    void deleteByUserId(Long userId);
+}

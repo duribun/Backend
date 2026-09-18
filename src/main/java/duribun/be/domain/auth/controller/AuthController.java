@@ -2,6 +2,7 @@ package duribun.be.domain.auth.controller;
 
 import duribun.be.domain.auth.dto.LoginRequest;
 import duribun.be.domain.auth.dto.LoginResponse;
+import duribun.be.domain.auth.dto.LogoutRequest;
 import duribun.be.domain.auth.dto.ReissueRequest;
 import duribun.be.domain.auth.dto.TokenResponse;
 import duribun.be.domain.auth.service.AuthService;
@@ -31,5 +32,11 @@ public class AuthController {
     @PostMapping("/reissue")
     public ResponseEntity<TokenResponse> reissue(@Valid @RequestBody ReissueRequest request) {
         return ResponseEntity.ok(authService.reissue(request.refreshToken()));
+    }
+
+    @PostMapping("/logout")
+    public ResponseEntity<Void> logout(@Valid @RequestBody LogoutRequest request) {
+        authService.logout(request.refreshToken());
+        return ResponseEntity.noContent().build();
     }
 }

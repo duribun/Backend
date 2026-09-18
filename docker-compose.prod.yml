@@ -1,0 +1,80 @@
+# docs/DEPLOY-AWS.md 참고 — EC2(t3.micro) 위에서 이 파일로 postgres+backend+caddy를 한 번에 띄운다.
+# 로컬 개발용 docker-compose.yml(postgres만 있음)과는 별개 파일 — 로컬 워크플로우엔 영향 없음.
+#
+# 실행: docker compose -f docker-compose.prod.yml --env-file .env up -d --build
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: duribun-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${DB_NAME}
+      POSTGRES_USER: ${DB_USERNAME}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+      TZ: UTC
+    # 로컬 docker-compose.yml과 달리 5432를 호스트에 노출하지 않는다 — DB는 backend
+    # 컨테이너만 도커 내부 네트워크로 접근하면 되고, 인터넷에 절대 열려있으면 안 된다.
+    volumes:
+      - duribun_pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USERNAME} -d ${DB_NAME}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: duribun-backend
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      SPRING_PROFILES_ACTIVE: prod
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_NAME: ${DB_NAME}
+      DB_USERNAME: ${DB_USERNAME}
+      DB_PASSWORD: ${DB_PASSWORD}
+      JWT_SECRET_KEY: ${JWT_SECRET_KEY}
+      JWT_ACCESS_TOKEN_EXPIRATION_MINUTES: ${JWT_ACCESS_TOKEN_EXPIRATION_MINUTES:-60}
+      JWT_REFRESH_TOKEN_EXPIRATION_DAYS: ${JWT_REFRESH_TOKEN_EXPIRATION_DAYS:-14}
+      OAUTH_GOOGLE_WEB_CLIENT_ID: ${OAUTH_GOOGLE_WEB_CLIENT_ID}
+      OAUTH_KAKAO_REST_API_KEY: ${OAUTH_KAKAO_REST_API_KEY}
+      OAUTH_NAVER_CLIENT_ID: ${OAUTH_NAVER_CLIENT_ID}
+      OAUTH_NAVER_CLIENT_SECRET: ${OAUTH_NAVER_CLIENT_SECRET}
+      TOUR_API_SERVICE_KEY: ${TOUR_API_SERVICE_KEY}
+      AWS_ACCESS_KEY_ID: ${AWS_ACCESS_KEY_ID}
+      AWS_SECRET_ACCESS_KEY: ${AWS_SECRET_ACCESS_KEY}
+      AWS_S3_BUCKET: ${AWS_S3_BUCKET}
+      AWS_REGION: ${AWS_REGION:-ap-northeast-2}
+      ALLOWED_ORIGINS: https://${DOMAIN}
+      BACKEND_BASE_URL: https://${DOMAIN}
+    # 8080을 호스트에 노출하지 않는다 — Caddy만 도커 내부 네트워크로 접근하고,
+    # 외부(인터넷)엔 80/443만 열린다.
+    expose:
+      - "8080"
+
+  caddy:
+    image: caddy:2-alpine
+    container_name: duribun-caddy
+    restart: unless-stopped
+    depends_on:
+      - backend
+    ports:
+      - "80:80"
+      - "443:443"
+    environment:
+      DOMAIN: ${DOMAIN}
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+
+volumes:
+  duribun_pgdata:
+  caddy_data:
+  caddy_config:

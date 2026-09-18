@@ -32,18 +32,18 @@ class RefreshTokenRepositoryTest {
     }
 
     @Test
-    void findByToken_존재하는_토큰을_조회한다() {
+    void findByTokenHash_존재하는_토큰을_조회한다() {
         refreshTokenRepository.saveAndFlush(RefreshToken.create(2L, "find-me", LocalDateTime.now().plusDays(14)));
 
-        Optional<RefreshToken> found = refreshTokenRepository.findByToken("find-me");
+        Optional<RefreshToken> found = refreshTokenRepository.findByTokenHash(RefreshToken.hash("find-me"));
 
         assertThat(found).isPresent();
         assertThat(found.get().getUserId()).isEqualTo(2L);
     }
 
     @Test
-    void findByToken_존재하지_않으면_빈값을_반환한다() {
-        Optional<RefreshToken> found = refreshTokenRepository.findByToken("no-such-token");
+    void findByTokenHash_존재하지_않으면_빈값을_반환한다() {
+        Optional<RefreshToken> found = refreshTokenRepository.findByTokenHash(RefreshToken.hash("no-such-token"));
 
         assertThat(found).isEmpty();
     }

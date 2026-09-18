@@ -1,0 +1,23 @@
+spring:
+  config:
+    activate:
+      on-profile: postgres-it
+
+  jpa:
+    database-platform: org.hibernate.dialect.PostgreSQLDialect
+    hibernate:
+      ddl-auto: create-drop
+
+jwt:
+  secret: ZHVyaWJ1bi10ZXN0LWp3dC1zZWNyZXQta2V5LWZvci11bml0LXRlc3RzLTMyYnl0ZXM=
+  access-token-expire-minutes: 60
+  refresh-token-expire-days: 14
+
+oauth2:
+  google:
+    web-client-id: test-google-web-client-id
+  kakao:
+    rest-api-key: test-kakao-rest-api-key
+  naver:
+    client-id: test-naver-client-id
+    client-secret: test-naver-client-secret

@@ -14,7 +14,12 @@ public class AuditorAwareImpl implements AuditorAware<Long> {
         if (authentication == null || !authentication.isAuthenticated()) {
             return Optional.empty();
         }
-        // TODO: auth 도메인 JWT 인증 완료 후, Authentication에서 실제 userId를 꺼내는 로직으로 교체
+
+        Object principal = authentication.getPrincipal();
+        if (principal instanceof Long userId) {
+            return Optional.of(userId);
+        }
+
         return Optional.empty();
     }
 }

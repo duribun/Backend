@@ -15,11 +15,16 @@ import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+
 @Getter
 @Entity
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @Table(name = "users", uniqueConstraints = @UniqueConstraint(columnNames = {"provider", "provider_id"}))
 public class User extends BaseTimeEntity {
+
+    public static final String NICKNAME_PATTERN = "^[a-zA-Z0-9가-힣]{2,10}$";
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -30,6 +35,13 @@ public class User extends BaseTimeEntity {
 
     @Column
     private String nickname;
+
+    @Column(name = "birth_date")
+    private LocalDate birthDate;
+
+    @Enumerated(EnumType.STRING)
+    @Column
+    private Gender gender;
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
@@ -45,15 +57,54 @@ public class User extends BaseTimeEntity {
     @Column(nullable = false)
     private Role role;
 
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
+    private UserStatus status;
+
+    @Column
+    private LocalDateTime withdrawnAt;
+
     private User(String email, String nickname, SocialProvider provider, String providerId) {
         this.email = email;
         this.nickname = nickname;
         this.provider = provider;
         this.providerId = providerId;
         this.role = Role.USER;
+        this.status = UserStatus.ACTIVE;
     }
 
     public static User create(SocialUserInfo info, SocialProvider provider) {
         return new User(info.email(), info.nickname(), provider, info.providerId());
+    }
+
+    public void withdraw() {
+        this.status = UserStatus.WITHDRAWN;
+        this.withdrawnAt = LocalDateTime.now();
+    }
+
+    public void reactivate() {
+        this.status = UserStatus.ACTIVE;
+        this.withdrawnAt = null;
+    }
+
+    public boolean isWithdrawn() {
+        return this.status == UserStatus.WITHDRAWN;
+    }
+
+    public void updateProfile(String nickname, LocalDate birthDate, Gender gender) {
+        this.nickname = nickname;
+        this.birthDate = birthDate;
+        this.gender = gender;
+    }
+
+    /**
+     * 탈퇴 시 프로필을 초기화한다 — 세 컬럼 모두 NOT NULL 제약이 없어 스키마 변경 없이 null로 되돌릴 수 있다.
+     * 같은 소셜 계정으로 재로그인하면(AuthService.login()) isNewUser=true로 다시 profile-setup(온보딩)부터
+     * 시작하게 되므로, 그 전까지 남아있던 이전 값이 잠깐이라도 노출되지 않도록 여기서 같이 지운다.
+     */
+    public void resetProfile() {
+        this.nickname = null;
+        this.birthDate = null;
+        this.gender = null;
     }
 }

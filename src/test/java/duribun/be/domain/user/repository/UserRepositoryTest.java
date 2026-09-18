@@ -52,6 +52,24 @@ class UserRepositoryTest {
     }
 
     @Test
+    void existsByNicknameAndIdNot_다른_유저가_해당_닉네임을_쓰고있으면_true를_반환한다() {
+        User other = userRepository.saveAndFlush(User.create(new SocialUserInfo("pid-nick-1", "e@e.com", "겹치는닉네임"), SocialProvider.GOOGLE));
+
+        boolean exists = userRepository.existsByNicknameAndIdNot("겹치는닉네임", other.getId() + 1);
+
+        assertThat(exists).isTrue();
+    }
+
+    @Test
+    void existsByNicknameAndIdNot_본인의_닉네임이면_false를_반환한다() {
+        User self = userRepository.saveAndFlush(User.create(new SocialUserInfo("pid-nick-2", "f@f.com", "내닉네임"), SocialProvider.GOOGLE));
+
+        boolean exists = userRepository.existsByNicknameAndIdNot("내닉네임", self.getId());
+
+        assertThat(exists).isFalse();
+    }
+
+    @Test
     void 동일한_provider와_providerId_조합은_유니크_제약을_위반한다() {
         userRepository.saveAndFlush(User.create(new SocialUserInfo("dup-id", "c@c.com", "nick3"), SocialProvider.GOOGLE));
 
